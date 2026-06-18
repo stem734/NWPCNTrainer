@@ -5,6 +5,8 @@
   const DB_VERSION = 1;
   const STORE = "projects";
   const LS_KEY = "s1-hotspot-training-builder-projects";
+  const PASS_KEY = "s1-hotspot-training-builder-editor-passhash";
+  const SESSION_KEY = "s1-hotspot-training-builder-editor-unlocked";
   const MIN_SIZE = 1.2;
 
   const state = {
@@ -35,7 +37,10 @@
       "saveStatus", "imageInput", "importBtn", "exportProjectBtn", "jsonInput", "hotspotList",
       "drawBtn", "selectBtn", "panBtn", "fitBtn", "actualBtn", "modeText", "zoomText", "stageWrap",
       "stage", "selectedSelect", "hotTitle", "hotLabel", "hotGuidance", "hotMeta", "hotX", "hotY",
-      "hotW", "hotH", "deleteBtn", "duplicateBtn", "previewBtn", "exportBtn"
+      "hotW", "hotH", "deleteBtn", "duplicateBtn", "previewBtn", "exportBtn", "refreshPreviewBtn",
+      "viewerFrame", "topbarMeta", "viewerModeText", "viewerZoomText", "editorPanel", "lockedGate",
+      "editorAccessBtn", "unlockEditorBtn", "editorModal", "editorPassphrase", "editorSubmitBtn",
+      "editorCancelBtn", "editorModalText"
     ].forEach((id) => {
       els[id] = document.getElementById(id);
     });
@@ -45,6 +50,7 @@
     refreshProjects();
     render();
     setStatus("Autosave ready");
+    applyEditorAccessState();
   }
 
   function wireEvents() {
@@ -107,6 +113,15 @@
     els.duplicateBtn.addEventListener("click", duplicateSelectedHotspot);
     els.previewBtn.addEventListener("click", previewTrainingPage);
     els.exportBtn.addEventListener("click", exportTrainingHtml);
+    els.refreshPreviewBtn.addEventListener("click", updateViewer);
+    els.editorAccessBtn.addEventListener("click", openEditorModal);
+    els.unlockEditorBtn.addEventListener("click", openEditorModal);
+    els.editorCancelBtn.addEventListener("click", closeEditorModal);
+    els.editorSubmitBtn.addEventListener("click", submitEditorPassphrase);
+    els.editorPassphrase.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") submitEditorPassphrase();
+      if (event.key === "Escape") closeEditorModal();
+    });
   }
 
   function newProject() {
@@ -343,6 +358,8 @@
     renderLists();
     populateEditor();
     updateButtons();
+    updateViewer();
+    els.topbarMeta.textContent = `Editing: ${state.title}`;
   }
 
   function renderStage() {
@@ -567,6 +584,7 @@
     els.stage.style.marginRight = "12px";
     els.stage.style.marginBottom = "12px";
     els.zoomText.textContent = state.zoom === "actual" ? "Zoom: 100%" : `Zoom: ${Math.round(state.scale * 100)}%`;
+    els.viewerZoomText.textContent = `Preview scale: ${state.zoom === "actual" ? "100%" : `${Math.round(state.scale * 100)}%`}`;
     if (state.zoom === "fit" || previousScale !== state.scale) {
       positionStageForFit(false);
     }
@@ -763,6 +781,11 @@
     const hotspotData = JSON.stringify(project.hotspots).replace(/</g, "\\u003c");
     const image = project.image;
     const imageAlt = escapeHtml(project.imageName || project.title || "Training screenshot");
+    const pageList = JSON.parse(localStorage.getItem(LS_KEY) || "[]")
+      .sort((a, b) => (a.title || "").localeCompare(b.title || ""))
+      .slice(0, 12)
+      .map((item) => `<button class="navItem${item.id === project.id ? " active" : ""}" type="button">${escapeHtml(item.title || "Untitled training page")}</button>`)
+      .join("");
 
     return `<!doctype html>
 <html lang="en">
@@ -772,10 +795,18 @@
   <title>${safeTitle}</title>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; background: #f5f7fa; color: #17202a; font-family: Arial, Helvetica, sans-serif; line-height: 1.45; }
-    header { padding: 18px 22px; background: #fff; border-bottom: 1px solid #d8dee8; }
-    h1 { margin: 0; font-size: clamp(1.35rem, 2.5vw, 2.1rem); }
-    .screen { position: relative; width: min(100%, ${project.imageWidth || 1600}px); margin: 0 auto; background: #fff; }
+    body { margin: 0; background: #edf1f5; color: #17202a; font-family: Arial, Helvetica, sans-serif; line-height: 1.45; }
+    .shell { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; grid-column: 1 / -1; padding: 14px 20px; background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%); border-bottom: 1px solid #d8dee8; }
+    .topbar h1 { margin: 0; font-size: 1.2rem; }
+    .topbar p { margin: 2px 0 0; color: #5c6672; font-size: 0.88rem; }
+    .nav { background: #f9fbfd; border-right: 1px solid #d8dee8; padding: 14px; }
+    .nav h2 { margin: 0 0 10px; font-size: 0.92rem; color: #344054; }
+    .navItem { display: block; width: 100%; margin-bottom: 8px; border: 1px solid #d7deea; border-radius: 6px; background: #fff; padding: 10px 12px; text-align: left; font-weight: 700; color: #17202a; }
+    .navItem.active { background: #eaf2ff; border-color: #1458d4; }
+    .main { padding: 18px; }
+    .contentShell { max-width: 1600px; margin: 0 auto; }
+    .screen { position: relative; width: 100%; background: #fff; border: 1px solid #d8dee8; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(17, 24, 39, 0.08); }
     .screen img { display: block; width: 100%; height: auto; }
     .spot { position: absolute; border: 2px solid rgba(17, 24, 39, 0); background: rgba(255, 200, 87, 0); cursor: help; }
     .spot:hover, .spot:focus, .spot.active { border-color: #111827; background: rgba(255, 200, 87, 0.25); outline: 0; box-shadow: 0 0 0 2px rgba(255,255,255,.92), 0 10px 30px rgba(0,0,0,.16); }
@@ -786,17 +817,32 @@
     .tip h2 { margin: 0 0 8px; font-size: 1rem; }
     .tip p { margin: 0; color: #2d3748; white-space: pre-wrap; }
     .tip .meta { margin-top: 10px; color: #5c6672; font-size: .85rem; }
-    .empty { padding: 18px 22px; color: #5c6672; }
+    .empty { padding: 18px; color: #5c6672; }
+    @media (max-width: 900px) { .shell { grid-template-columns: 1fr; } .nav { border-right: 0; border-bottom: 1px solid #d8dee8; } }
   </style>
 </head>
 <body>
-  <header><h1>${safeTitle}</h1></header>
-  <main>
-    <div class="screen" id="screen">
-      <img src="${image}" alt="${imageAlt}">
-    </div>
-    ${project.hotspots.length ? "" : '<p class="empty">No hotspots were added to this guide.</p>'}
-  </main>
+  <div class="shell">
+    <header class="topbar">
+      <div>
+        <h1>${safeTitle}</h1>
+        <p>Public training page</p>
+      </div>
+      <div>${project.hotspots.length} hotspot${project.hotspots.length === 1 ? "" : "s"}</div>
+    </header>
+    <nav class="nav" aria-label="Training pages">
+      <h2>Training pages</h2>
+      ${pageList || '<div class="empty">No saved training pages yet.</div>'}
+    </nav>
+    <main class="main">
+      <div class="contentShell">
+        <div class="screen" id="screen">
+          <img src="${image}" alt="${imageAlt}">
+        </div>
+        ${project.hotspots.length ? "" : '<p class="empty">No hotspots were added to this guide.</p>'}
+      </div>
+    </main>
+  </div>
   <aside class="tip" id="tip" aria-live="polite"></aside>
   <script>
     const hotspots = ${hotspotData};
@@ -954,6 +1000,56 @@
     els.saveStatus.textContent = message;
   }
 
+  function applyEditorAccessState() {
+    const unlocked = sessionStorage.getItem(SESSION_KEY) === "1";
+    els.editorPanel.classList.toggle("is-locked", !unlocked);
+    els.lockedGate.hidden = unlocked;
+    els.editorAccessBtn.textContent = unlocked ? "Lock editor" : "Open editor";
+    els.topbarMeta.textContent = unlocked ? `Editing: ${state.title}` : "Editor locked";
+    els.editorAccessBtn.onclick = unlocked ? () => lockEditor() : () => openEditorModal();
+  }
+
+  function openEditorModal() {
+    els.editorModal.classList.remove("hidden");
+    els.editorPassphrase.value = "";
+    els.editorPassphrase.focus();
+    els.editorModalText.textContent = localStorage.getItem(PASS_KEY)
+      ? "Enter the existing editor passphrase."
+      : "No passphrase is set yet. This browser will create one when you unlock.";
+  }
+
+  function closeEditorModal() {
+    els.editorModal.classList.add("hidden");
+  }
+
+  async function submitEditorPassphrase() {
+    const passphrase = els.editorPassphrase.value.trim();
+    if (!passphrase) return;
+    const existing = localStorage.getItem(PASS_KEY);
+    const hash = await sha256(passphrase);
+    if (existing && existing !== hash) {
+      els.editorModalText.textContent = "That passphrase did not match.";
+      return;
+    }
+    if (!existing) {
+      localStorage.setItem(PASS_KEY, hash);
+    }
+    sessionStorage.setItem(SESSION_KEY, "1");
+    closeEditorModal();
+    applyEditorAccessState();
+  }
+
+  function lockEditor() {
+    sessionStorage.removeItem(SESSION_KEY);
+    applyEditorAccessState();
+  }
+
+  function updateViewer() {
+    if (!els.viewerFrame) return;
+    els.viewerFrame.srcdoc = buildTrainingHtml();
+    els.viewerModeText.textContent = state.image ? "Live preview" : "Preview ready when a screenshot is loaded";
+  }
+
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
   }
@@ -1002,5 +1098,11 @@
 
   function isTyping(target) {
     return ["INPUT", "TEXTAREA", "SELECT"].includes(target && target.tagName);
+  }
+
+  async function sha256(value) {
+    const data = new TextEncoder().encode(value);
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
   }
 })();

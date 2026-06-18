@@ -7,32 +7,64 @@
   <link rel="stylesheet" href="src/styles.css">
 </head>
 <body>
-<header>
-  <h1>S1 Hotspot Training Builder</h1>
-  <p>Build interactive SystmOne screenshot guidance locally, save projects in the browser, and export standalone HTML for your website or intranet.</p>
+<header class="topbar">
+  <div>
+    <h1>S1 Hotspot Training Builder</h1>
+    <p>Build interactive SystmOne screenshot guidance locally, save projects in the browser, and preview the deployed training page as an end user would see it.</p>
+  </div>
+  <div class="topbarActions">
+    <div class="topbarMeta" id="topbarMeta">Editing locked</div>
+    <button id="editorAccessBtn" class="primary">Open editor</button>
+  </div>
 </header>
 
-<div class="app">
-  <aside class="panel">
-    <h2>1. Projects</h2>
+<div class="appShell">
+  <aside class="navRail panel">
+    <h2>Training pages</h2>
     <div class="body">
+      <label for="projectList">Select page</label>
+      <select id="projectList"></select>
+      <div class="row">
+        <button id="loadProjectBtn">Load</button>
+        <button id="newProjectBtn" class="primary">New</button>
+      </div>
+      <div class="row">
+        <button id="saveNowBtn">Save now</button>
+        <button id="deleteProjectBtn" class="danger">Delete</button>
+      </div>
+      <div class="autosave" id="saveStatus">Autosave ready</div>
+      <hr>
+      <div class="navNote">
+        Use this rail to swap between the training pages you have built.
+      </div>
+    </div>
+  </aside>
+
+  <main class="panel viewerPanel">
+    <h2>Live viewer</h2>
+    <div class="viewerChrome">
+      <div class="toolbar viewerToolbar">
+        <span class="small" id="viewerModeText">Live preview</span>
+        <span class="small" id="viewerZoomText">Matches exported HTML</span>
+        <button id="refreshPreviewBtn">Refresh preview</button>
+        <button id="previewBtn" class="good">Open deployed view</button>
+        <button id="exportBtn" class="primary">Export HTML</button>
+      </div>
+      <div class="viewerFrameWrap">
+        <iframe id="viewerFrame" title="Live training page preview"></iframe>
+      </div>
+    </div>
+  </main>
+
+  <aside class="panel editorPanel is-locked" id="editorPanel">
+    <h2>Editor</h2>
+    <div class="lockedGate" id="lockedGate">
+      <p>The editor is locked. Open it with the access passphrase.</p>
+      <button id="unlockEditorBtn" class="primary">Unlock editor</button>
+    </div>
+    <div class="body editorBody">
       <label for="projectTitle">Training title</label>
       <input id="projectTitle" type="text" value="Reception Visualisation Training">
-
-      <div class="row">
-        <button id="newProjectBtn">New project</button>
-        <button id="saveNowBtn" class="primary">Save now</button>
-      </div>
-
-      <label for="projectList">Saved projects</label>
-      <select id="projectList"></select>
-
-      <div class="row">
-        <button id="loadProjectBtn">Load selected</button>
-        <button id="deleteProjectBtn" class="danger">Delete selected</button>
-      </div>
-
-      <div class="autosave" id="saveStatus">Autosave ready</div>
 
       <hr>
 
@@ -59,36 +91,34 @@
       <h3>Hotspots</h3>
       <div id="hotspotList" class="list"></div>
       <p class="small"><span class="kbd">Add hotspot</span> then drag on the screenshot. Use <span class="kbd">Pan view</span>, middle mouse, or hold <span class="kbd">Space</span> to drag around a large image.</p>
-    </div>
-  </aside>
 
-  <main class="panel workspace">
-    <h2>2. Draw hotspots</h2>
-    <div class="toolbar">
-      <button id="drawBtn" class="primary">Add hotspot</button>
-      <button id="selectBtn">Select / move</button>
-      <button id="panBtn">Pan view</button>
-      <button id="fitBtn">Fit to workspace</button>
-      <button id="actualBtn">100% actual pixels</button>
-      <span class="small" id="modeText">Mode: add hotspot</span>
-      <span class="small" id="zoomText">Zoom: fit</span>
-      <span class="small">Hotspots stay hidden until hover; selected hotspot remains visible.</span>
-    </div>
-    <div class="stageWrap" id="stageWrap">
-      <div id="stage" class="stage">
-        <div class="placeholder">
-          <div>
-            <h2>Load a SystmOne screenshot to start</h2>
-            <p>Then click <b>Add hotspot</b> and draw boxes over the sections staff need guidance on.</p>
+      <hr>
+
+      <div class="toolbar editorToolbar">
+        <button id="drawBtn" class="primary">Add hotspot</button>
+        <button id="selectBtn">Select / move</button>
+        <button id="panBtn">Pan view</button>
+        <button id="fitBtn">Fit to workspace</button>
+        <button id="actualBtn">100% actual pixels</button>
+      </div>
+      <div class="editorStatus">
+        <span class="small" id="modeText">Mode: add hotspot</span>
+        <span class="small" id="zoomText">Zoom: fit</span>
+      </div>
+      <div class="stageWrap" id="stageWrap">
+        <div id="stage" class="stage">
+          <div class="placeholder">
+            <div>
+              <h2>Load a SystmOne screenshot to start</h2>
+              <p>Then click <b>Add hotspot</b> and draw boxes over the sections staff need guidance on.</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </main>
 
-  <aside class="panel">
-    <h2>3. Guidance editor</h2>
-    <div class="body">
+      <hr>
+
+      <h3>Guidance editor</h3>
       <label for="selectedSelect">Selected hotspot</label>
       <select id="selectedSelect"></select>
 
@@ -122,9 +152,24 @@
         <button id="previewBtn" class="good">Preview training page</button>
         <button id="exportBtn" class="primary">Export HTML</button>
       </div>
-      <p class="small">Export creates a single standalone HTML file. The screenshot uses the full browser width and guidance follows the mouse pointer.</p>
+      <p class="small">The live viewer above mirrors the deployed HTML. Export creates a single standalone HTML file.</p>
     </div>
   </aside>
+</div>
+
+<div class="modalBackdrop hidden" id="editorModal">
+  <div class="modalCard panel">
+    <h2>Editor access</h2>
+    <div class="body">
+      <label for="editorPassphrase">Passphrase</label>
+      <input id="editorPassphrase" type="password" autocomplete="current-password" placeholder="Enter editor passphrase">
+      <div class="row">
+        <button id="editorCancelBtn">Cancel</button>
+        <button id="editorSubmitBtn" class="primary">Unlock</button>
+      </div>
+      <p class="small" id="editorModalText">If no passphrase has been set yet, this will create one for the current browser.</p>
+    </div>
+  </div>
 </div>
 
 <script src="src/app.js"></script>

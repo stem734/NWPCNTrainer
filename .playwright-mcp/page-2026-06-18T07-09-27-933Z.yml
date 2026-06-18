@@ -1,0 +1,122 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - heading "S1 Hotspot Training Builder" [level=1] [ref=e4]
+      - paragraph [ref=e5]: Build interactive SystmOne screenshot guidance locally, save projects in the browser, and preview the deployed training page as an end user would see it.
+    - generic [ref=e6]:
+      - generic [ref=e7]: Editor locked
+      - button "Open editor" [ref=e8] [cursor=pointer]
+  - generic [ref=e9]:
+    - complementary [ref=e10]:
+      - heading "Training pages" [level=2] [ref=e11]
+      - generic [ref=e12]:
+        - generic [ref=e13]: Select page
+        - combobox "Select page" [ref=e14]
+        - generic [ref=e15]:
+          - button "Load" [ref=e16] [cursor=pointer]
+          - button "New" [ref=e17] [cursor=pointer]
+        - generic [ref=e18]:
+          - button "Save now" [ref=e19] [cursor=pointer]
+          - button "Delete" [ref=e20] [cursor=pointer]
+        - generic [ref=e21]: Autosave ready
+        - separator [ref=e22]
+        - generic [ref=e23]: Use this rail to swap between the training pages you have built.
+    - main [ref=e24]:
+      - heading "Live viewer" [level=2] [ref=e25]
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - generic [ref=e28]: Preview ready when a screenshot is loaded
+          - generic [ref=e29]: Matches exported HTML
+          - button "Refresh preview" [ref=e30] [cursor=pointer]
+          - button "Open deployed view" [disabled] [ref=e31]
+          - button "Export HTML" [disabled] [ref=e32]
+        - iframe [ref=e34]:
+          - generic [active] [ref=f1e1]:
+            - banner [ref=f1e2]:
+              - heading "Reception Visualisation Training" [level=1] [ref=f1e3]
+            - main [ref=f1e4]:
+              - img "Reception Visualisation Training" [ref=f1e6]
+              - paragraph [ref=f1e7]: No hotspots were added to this guide.
+    - complementary [ref=e35]:
+      - heading "Editor" [level=2] [ref=e36]
+      - generic [ref=e37]:
+        - paragraph [ref=e38]: The editor is locked. Open it with the access passphrase.
+        - button "Unlock editor" [ref=e39] [cursor=pointer]
+      - generic:
+        - generic: Training title
+        - textbox "Training title": Reception Visualisation Training
+        - separator
+        - generic: Screenshot image
+        - button "Screenshot image"
+        - paragraph: Use a clean screenshot with no patient-identifiable information before publishing an exported HTML page.
+        - separator
+        - generic:
+          - button "Import project JSON"
+          - button "Export project JSON"
+        - separator
+        - generic: "Draw larger hotspots for recognisable sections rather than every individual tile: Alerts, Patient Status, Recalls bloods/tests, specific disease cards, and Quick Actions."
+        - separator
+        - heading "Hotspots" [level=3]
+        - generic:
+          - paragraph: No hotspots yet.
+        - paragraph:
+          - generic: Add hotspot
+          - text: then drag on the screenshot. Use
+          - generic: Pan view
+          - text: ", middle mouse, or hold"
+          - generic: Space
+          - text: to drag around a large image.
+        - separator
+        - generic:
+          - button "Add hotspot" [disabled]
+          - button "Select / move" [disabled]
+          - button "Pan view" [disabled]
+          - button "Fit to workspace" [disabled]
+          - button "100% actual pixels" [disabled]
+        - generic:
+          - generic: "Mode: add hotspot"
+          - generic: "Zoom: fit"
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading "Load a SystmOne screenshot to start" [level=2]
+                - paragraph: Then click Add hotspot and draw boxes over the sections staff need guidance on.
+        - separator
+        - heading "Guidance editor" [level=3]
+        - generic: Selected hotspot
+        - combobox "Selected hotspot":
+          - option "No hotspots" [selected]
+        - generic: Title
+        - textbox "Title" [disabled]:
+          - /placeholder: e.g. Recalls – LTC bloods/tests
+        - generic: Short label
+        - textbox "Short label" [disabled]:
+          - /placeholder: e.g. Recalls
+        - generic: Guidance text
+        - textbox "Guidance text" [disabled]:
+          - /placeholder: Explain what the section means and what reception should do...
+        - generic: Optional metadata
+        - textbox "Optional metadata" [disabled]:
+          - /placeholder: "e.g. Relevant reports: 41023782–41023785"
+        - generic:
+          - generic:
+            - generic: X %
+            - spinbutton "X %" [disabled]
+          - generic:
+            - generic: Y %
+            - spinbutton "Y %" [disabled]
+          - generic:
+            - generic: Width %
+            - spinbutton "Width %" [disabled]
+          - generic:
+            - generic: Height %
+            - spinbutton "Height %" [disabled]
+        - generic:
+          - button "Delete" [disabled]
+          - button "Duplicate" [disabled]
+        - separator
+        - generic:
+          - button "Preview training page"
+          - button "Export HTML"
+        - paragraph: The live viewer above mirrors the deployed HTML. Export creates a single standalone HTML file.

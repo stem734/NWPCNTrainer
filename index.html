@@ -3,22 +3,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>S1 Hotspot Training Builder</title>
+  <title>S1 Hotspot Training</title>
   <link rel="stylesheet" href="src/styles.css">
 </head>
-<body>
+<body class="mode-user">
 <header class="topbar">
   <div>
-    <h1>S1 Hotspot Training Builder</h1>
-    <p>Build interactive SystmOne screenshot guidance locally, save projects in the browser, and preview the deployed training page as an end user would see it.</p>
+    <h1>S1 Hotspot Training</h1>
+    <p>Browse published interactive SystmOne guidance, or switch to the editor to build and publish new training pages.</p>
   </div>
   <div class="topbarActions">
-    <div class="topbarMeta" id="topbarMeta">Editing locked</div>
-    <button id="editorAccessBtn" class="primary">Open editor</button>
+    <span class="topbarMeta" id="topbarMeta"></span>
+    <div class="viewSwitch" role="group" aria-label="View mode">
+      <button id="userModeBtn" type="button" class="active">User view</button>
+      <button id="editorModeBtn" type="button">Editor</button>
+    </div>
   </div>
 </header>
 
-<div class="appShell">
+<!-- USER-FACING VIEW -->
+<div class="userShell" id="userShell">
+  <aside class="panel userRail">
+    <h2>Training pages</h2>
+    <div class="body">
+      <p class="small">Select a published training page to view.</p>
+      <div id="publicPageList" class="list"></div>
+    </div>
+  </aside>
+
+  <main class="panel viewerPanel">
+    <h2>Training viewer</h2>
+    <div class="viewerChrome">
+      <div class="toolbar viewerToolbar">
+        <span class="small" id="publicTitleText">No page selected</span>
+      </div>
+      <div class="viewerFrameWrap">
+        <iframe id="publicFrame" title="Training page"></iframe>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- EDITOR VIEW -->
+<div class="appShell" id="editorShell" hidden>
   <aside class="navRail panel">
     <h2>Training pages</h2>
     <div class="body">
@@ -41,14 +68,12 @@
   </aside>
 
   <main class="panel viewerPanel">
-    <h2>Live viewer</h2>
+    <h2>Live preview</h2>
     <div class="viewerChrome">
       <div class="toolbar viewerToolbar">
         <span class="small" id="viewerModeText">Live preview</span>
-        <span class="small" id="viewerZoomText">Matches exported HTML</span>
+        <span class="small" id="viewerZoomText">Matches the user view</span>
         <button id="refreshPreviewBtn">Refresh preview</button>
-        <button id="previewBtn" class="good">Open deployed view</button>
-        <button id="exportBtn" class="primary">Export HTML</button>
       </div>
       <div class="viewerFrameWrap">
         <iframe id="viewerFrame" title="Live training page preview"></iframe>
@@ -56,21 +81,22 @@
     </div>
   </main>
 
-  <aside class="panel editorPanel is-locked" id="editorPanel">
+  <aside class="panel editorPanel">
     <h2>Editor</h2>
-    <div class="lockedGate" id="lockedGate">
-      <p>The editor is locked. Open it with the access passphrase.</p>
-      <button id="unlockEditorBtn" class="primary">Unlock editor</button>
-    </div>
     <div class="body editorBody">
       <label for="projectTitle">Training title</label>
       <input id="projectTitle" type="text" value="Reception Visualisation Training">
+
+      <label class="toggleRow" for="publishToggle">
+        <input id="publishToggle" type="checkbox">
+        <span>Published <span class="small">(visible to users in the User view)</span></span>
+      </label>
 
       <hr>
 
       <label for="imageInput">Screenshot image</label>
       <input id="imageInput" type="file" accept="image/*">
-      <p class="small">Use a clean screenshot with no patient-identifiable information before publishing an exported HTML page.</p>
+      <p class="small">Use a clean screenshot with no patient-identifiable information before publishing.</p>
 
       <hr>
 
@@ -146,13 +172,7 @@
         <button id="duplicateBtn">Duplicate</button>
       </div>
 
-      <hr>
-
-      <div class="row">
-        <button id="previewBtn" class="good">Preview training page</button>
-        <button id="exportBtn" class="primary">Export HTML</button>
-      </div>
-      <p class="small">The live viewer above mirrors the deployed HTML. Export creates a single standalone HTML file.</p>
+      <p class="small top-gap">The live preview mirrors exactly what users see. Toggle <b>Published</b> above to make this page available in the User view.</p>
     </div>
   </aside>
 </div>

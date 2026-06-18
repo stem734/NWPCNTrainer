@@ -16,6 +16,7 @@
     imageName: "",
     imageWidth: 0,
     imageHeight: 0,
+    published: false,
     hotspots: [],
     selectedId: "",
     mode: "draw",
@@ -24,7 +25,9 @@
     isSpaceDown: false,
     action: null,
     saveTimer: 0,
-    dirty: false
+    dirty: false,
+    viewMode: "user",
+    publicPageId: ""
   };
 
   const els = {};
@@ -33,14 +36,14 @@
 
   function init() {
     [
-      "projectTitle", "newProjectBtn", "saveNowBtn", "projectList", "loadProjectBtn", "deleteProjectBtn",
-      "saveStatus", "imageInput", "importBtn", "exportProjectBtn", "jsonInput", "hotspotList",
-      "drawBtn", "selectBtn", "panBtn", "fitBtn", "actualBtn", "modeText", "zoomText", "stageWrap",
-      "stage", "selectedSelect", "hotTitle", "hotLabel", "hotGuidance", "hotMeta", "hotX", "hotY",
-      "hotW", "hotH", "deleteBtn", "duplicateBtn", "previewBtn", "exportBtn", "refreshPreviewBtn",
-      "viewerFrame", "topbarMeta", "viewerModeText", "viewerZoomText", "editorPanel", "lockedGate",
-      "editorAccessBtn", "unlockEditorBtn", "editorModal", "editorPassphrase", "editorSubmitBtn",
-      "editorCancelBtn", "editorModalText"
+      "projectTitle", "publishToggle", "newProjectBtn", "saveNowBtn", "projectList", "loadProjectBtn",
+      "deleteProjectBtn", "saveStatus", "imageInput", "importBtn", "exportProjectBtn", "jsonInput",
+      "hotspotList", "drawBtn", "selectBtn", "panBtn", "fitBtn", "actualBtn", "modeText", "zoomText",
+      "stageWrap", "stage", "selectedSelect", "hotTitle", "hotLabel", "hotGuidance", "hotMeta", "hotX",
+      "hotY", "hotW", "hotH", "deleteBtn", "duplicateBtn", "refreshPreviewBtn", "viewerFrame",
+      "topbarMeta", "viewerModeText", "viewerZoomText", "userModeBtn", "editorModeBtn", "userShell",
+      "editorShell", "userRail", "publicPageList", "publicTitleText", "publicFrame", "editorModal",
+      "editorPassphrase", "editorSubmitBtn", "editorCancelBtn", "editorModalText"
     ].forEach((id) => {
       els[id] = document.getElementById(id);
     });
@@ -50,12 +53,17 @@
     refreshProjects();
     render();
     setStatus("Autosave ready");
-    applyEditorAccessState();
+    applyViewMode();
+    renderPublicCatalog();
   }
 
   function wireEvents() {
     els.projectTitle.addEventListener("input", () => {
       state.title = els.projectTitle.value.trim() || "Untitled training guide";
+      markDirty();
+    });
+    els.publishToggle.addEventListener("change", () => {
+      state.published = els.publishToggle.checked;
       markDirty();
     });
     els.newProjectBtn.addEventListener("click", newProject);
@@ -111,11 +119,9 @@
     });
     els.deleteBtn.addEventListener("click", deleteSelectedHotspot);
     els.duplicateBtn.addEventListener("click", duplicateSelectedHotspot);
-    els.previewBtn.addEventListener("click", previewTrainingPage);
-    els.exportBtn.addEventListener("click", exportTrainingHtml);
     els.refreshPreviewBtn.addEventListener("click", updateViewer);
-    els.editorAccessBtn.addEventListener("click", openEditorModal);
-    els.unlockEditorBtn.addEventListener("click", openEditorModal);
+    els.userModeBtn.addEventListener("click", () => setViewMode("user"));
+    els.editorModeBtn.addEventListener("click", requestEditorMode);
     els.editorCancelBtn.addEventListener("click", closeEditorModal);
     els.editorSubmitBtn.addEventListener("click", submitEditorPassphrase);
     els.editorPassphrase.addEventListener("keydown", (event) => {
@@ -138,6 +144,7 @@
       imageName: "",
       imageWidth: 0,
       imageHeight: 0,
+      published: false,
       hotspots: [],
       selectedId: "",
       zoom: "fit",
@@ -353,13 +360,22 @@
 
   function render() {
     els.projectTitle.value = state.title;
+    els.publishToggle.checked = Boolean(state.published);
     renderStage();
     renderHotspotBoxes();
     renderLists();
     populateEditor();
     updateButtons();
     updateViewer();
-    els.topbarMeta.textContent = `Editing: ${state.title}`;
+    updateTopbarMeta();
+  }
+
+  function updateTopbarMeta() {
+    if (state.viewMode === "editor") {
+      els.topbarMeta.textContent = `Editing: ${state.title}${state.published ? " · Published" : " · Draft"}`;
+    } else {
+      els.topbarMeta.textContent = "";
+    }
   }
 
   function renderStage() {
@@ -556,8 +572,6 @@
     const hasImage = Boolean(state.image);
     els.deleteBtn.disabled = !hasSelection;
     els.duplicateBtn.disabled = !hasSelection;
-    els.previewBtn.disabled = !hasImage;
-    els.exportBtn.disabled = !hasImage;
     els.drawBtn.disabled = !hasImage;
     els.selectBtn.disabled = !hasImage;
     els.panBtn.disabled = !hasImage;
@@ -614,6 +628,7 @@
         setStatus("Autosaved");
       }
       refreshProjects(project.id);
+      renderPublicCatalog();
     } catch (err) {
       setStatus("Save failed in this browser");
     }
@@ -676,6 +691,7 @@
       newProject();
     }
     refreshProjects();
+    renderPublicCatalog();
     setStatus("Project deleted");
   }
 
@@ -698,6 +714,7 @@
       imageName: state.imageName,
       imageWidth: state.imageWidth,
       imageHeight: state.imageHeight,
+      published: Boolean(state.published),
       hotspots: state.hotspots,
       selectedId: state.selectedId,
       createdAt: state.createdAt || new Date().toISOString(),
@@ -714,6 +731,7 @@
       imageName: project.imageName || "",
       imageWidth: Number(project.imageWidth) || 0,
       imageHeight: Number(project.imageHeight) || 0,
+      published: Boolean(project.published),
       hotspots: Array.isArray(project.hotspots) ? project.hotspots.map(normalizeHotspot) : [],
       selectedId: project.selectedId || "",
       zoom: "fit",
@@ -759,33 +777,13 @@
     event.target.value = "";
   }
 
-  function previewTrainingPage() {
-    const html = buildTrainingHtml();
-    const win = window.open("", "_blank", "noopener,noreferrer");
-    if (!win) {
-      downloadFile(`${slugify(state.title)}.html`, html, "text/html");
-      return;
-    }
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
-  }
-
-  function exportTrainingHtml() {
-    downloadFile(`${slugify(state.title)}.html`, buildTrainingHtml(), "text/html");
-  }
-
-  function buildTrainingHtml() {
-    const project = getSerializableProject();
+  function buildTrainingHtml(source) {
+    const project = source || getSerializableProject();
     const safeTitle = escapeHtml(project.title);
-    const hotspotData = JSON.stringify(project.hotspots).replace(/</g, "\\u003c");
-    const image = project.image;
+    const hotspots = Array.isArray(project.hotspots) ? project.hotspots : [];
+    const hotspotData = JSON.stringify(hotspots).replace(/</g, "\\u003c");
+    const image = project.image || "";
     const imageAlt = escapeHtml(project.imageName || project.title || "Training screenshot");
-    const pageList = JSON.parse(localStorage.getItem(LS_KEY) || "[]")
-      .sort((a, b) => (a.title || "").localeCompare(b.title || ""))
-      .slice(0, 12)
-      .map((item) => `<button class="navItem${item.id === project.id ? " active" : ""}" type="button">${escapeHtml(item.title || "Untitled training page")}</button>`)
-      .join("");
 
     return `<!doctype html>
 <html lang="en">
@@ -796,14 +794,9 @@
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; background: #edf1f5; color: #17202a; font-family: Arial, Helvetica, sans-serif; line-height: 1.45; }
-    .shell { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; }
-    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; grid-column: 1 / -1; padding: 14px 20px; background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%); border-bottom: 1px solid #d8dee8; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 20px; background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%); border-bottom: 1px solid #d8dee8; }
     .topbar h1 { margin: 0; font-size: 1.2rem; }
     .topbar p { margin: 2px 0 0; color: #5c6672; font-size: 0.88rem; }
-    .nav { background: #f9fbfd; border-right: 1px solid #d8dee8; padding: 14px; }
-    .nav h2 { margin: 0 0 10px; font-size: 0.92rem; color: #344054; }
-    .navItem { display: block; width: 100%; margin-bottom: 8px; border: 1px solid #d7deea; border-radius: 6px; background: #fff; padding: 10px 12px; text-align: left; font-weight: 700; color: #17202a; }
-    .navItem.active { background: #eaf2ff; border-color: #1458d4; }
     .main { padding: 18px; }
     .contentShell { max-width: 1600px; margin: 0 auto; }
     .screen { position: relative; width: 100%; background: #fff; border: 1px solid #d8dee8; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(17, 24, 39, 0.08); }
@@ -817,37 +810,29 @@
     .tip h2 { margin: 0 0 8px; font-size: 1rem; }
     .tip p { margin: 0; color: #2d3748; white-space: pre-wrap; }
     .tip .meta { margin-top: 10px; color: #5c6672; font-size: .85rem; }
-    .empty { padding: 18px; color: #5c6672; }
-    @media (max-width: 900px) { .shell { grid-template-columns: 1fr; } .nav { border-right: 0; border-bottom: 1px solid #d8dee8; } }
+    .empty { padding: 40px 18px; color: #5c6672; text-align: center; }
   </style>
 </head>
 <body>
-  <div class="shell">
-    <header class="topbar">
-      <div>
-        <h1>${safeTitle}</h1>
-        <p>Public training page</p>
-      </div>
-      <div>${project.hotspots.length} hotspot${project.hotspots.length === 1 ? "" : "s"}</div>
-    </header>
-    <nav class="nav" aria-label="Training pages">
-      <h2>Training pages</h2>
-      ${pageList || '<div class="empty">No saved training pages yet.</div>'}
-    </nav>
-    <main class="main">
-      <div class="contentShell">
-        <div class="screen" id="screen">
-          <img src="${image}" alt="${imageAlt}">
-        </div>
-        ${project.hotspots.length ? "" : '<p class="empty">No hotspots were added to this guide.</p>'}
-      </div>
-    </main>
-  </div>
+  <header class="topbar">
+    <div>
+      <h1>${safeTitle}</h1>
+      <p>Hover or tap a highlighted area for guidance.</p>
+    </div>
+    <div>${hotspots.length} hotspot${hotspots.length === 1 ? "" : "s"}</div>
+  </header>
+  <main class="main">
+    <div class="contentShell">
+      ${image ? `<div class="screen" id="screen"><img src="${image}" alt="${imageAlt}"></div>` : '<p class="empty">This training page has no screenshot yet.</p>'}
+      ${image && !hotspots.length ? '<p class="empty">No hotspots were added to this guide.</p>' : ""}
+    </div>
+  </main>
   <aside class="tip" id="tip" aria-live="polite"></aside>
   <script>
     const hotspots = ${hotspotData};
     const screen = document.getElementById("screen");
     const tip = document.getElementById("tip");
+    if (screen) {
     function escapeHtml(value) {
       return String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
     }
@@ -892,6 +877,7 @@
       spot.addEventListener("click", (event) => { spot.classList.add("active"); showTip(hotspot, event); });
       screen.appendChild(spot);
     });
+    }
   </script>
 </body>
 </html>`;
@@ -1000,13 +986,36 @@
     els.saveStatus.textContent = message;
   }
 
-  function applyEditorAccessState() {
-    const unlocked = sessionStorage.getItem(SESSION_KEY) === "1";
-    els.editorPanel.classList.toggle("is-locked", !unlocked);
-    els.lockedGate.hidden = unlocked;
-    els.editorAccessBtn.textContent = unlocked ? "Lock editor" : "Open editor";
-    els.topbarMeta.textContent = unlocked ? `Editing: ${state.title}` : "Editor locked";
-    els.editorAccessBtn.onclick = unlocked ? () => lockEditor() : () => openEditorModal();
+  // ----- View mode (User view vs Editor) -----
+
+  function setViewMode(mode) {
+    state.viewMode = mode;
+    applyViewMode();
+    if (mode === "user") {
+      renderPublicCatalog();
+    } else {
+      updateViewer();
+      applyZoom();
+    }
+  }
+
+  function applyViewMode() {
+    const editor = state.viewMode === "editor";
+    document.body.classList.toggle("mode-editor", editor);
+    document.body.classList.toggle("mode-user", !editor);
+    els.editorShell.hidden = !editor;
+    els.userShell.hidden = editor;
+    els.userModeBtn.classList.toggle("active", !editor);
+    els.editorModeBtn.classList.toggle("active", editor);
+    updateTopbarMeta();
+  }
+
+  function requestEditorMode() {
+    if (sessionStorage.getItem(SESSION_KEY) === "1") {
+      setViewMode("editor");
+      return;
+    }
+    openEditorModal();
   }
 
   function openEditorModal() {
@@ -1036,12 +1045,63 @@
     }
     sessionStorage.setItem(SESSION_KEY, "1");
     closeEditorModal();
-    applyEditorAccessState();
+    setViewMode("editor");
   }
 
-  function lockEditor() {
-    sessionStorage.removeItem(SESSION_KEY);
-    applyEditorAccessState();
+  // ----- Public (user-facing) catalogue -----
+
+  async function renderPublicCatalog() {
+    let projects = [];
+    try {
+      projects = await dbAll();
+    } catch (err) {
+      projects = [];
+    }
+    const published = projects
+      .filter((project) => project && project.published)
+      .sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+
+    els.publicPageList.innerHTML = "";
+
+    if (!published.length) {
+      const empty = document.createElement("p");
+      empty.className = "emptyState";
+      empty.textContent = "No training pages have been published yet.";
+      els.publicPageList.appendChild(empty);
+      showPublicPage(null);
+      return;
+    }
+
+    if (!published.some((project) => project.id === state.publicPageId)) {
+      state.publicPageId = published[0].id;
+    }
+
+    published.forEach((project) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "hotspotItem";
+      item.classList.toggle("is-selected", project.id === state.publicPageId);
+      item.innerHTML = '<span><strong></strong><span></span></span>';
+      item.querySelector("strong").textContent = project.title || "Untitled training page";
+      item.querySelector("span span").textContent = `${(project.hotspots || []).length} hotspot${(project.hotspots || []).length === 1 ? "" : "s"}`;
+      item.addEventListener("click", () => {
+        state.publicPageId = project.id;
+        renderPublicCatalog();
+      });
+      els.publicPageList.appendChild(item);
+    });
+
+    showPublicPage(published.find((project) => project.id === state.publicPageId) || published[0]);
+  }
+
+  function showPublicPage(project) {
+    if (!project) {
+      els.publicTitleText.textContent = "No page selected";
+      els.publicFrame.srcdoc = "<!doctype html><html><body style=\"margin:0;font-family:Arial,Helvetica,sans-serif;color:#5c6672;display:grid;place-items:center;height:100vh;\"><p>Select a published training page from the list.</p></body></html>";
+      return;
+    }
+    els.publicTitleText.textContent = project.title || "Untitled training page";
+    els.publicFrame.srcdoc = buildTrainingHtml(project);
   }
 
   function updateViewer() {

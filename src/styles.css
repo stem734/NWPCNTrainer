@@ -70,6 +70,73 @@ header h1 {
   gap: 12px;
 }
 
+.viewSwitch {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.viewSwitch button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  color: var(--ink);
+}
+
+.viewSwitch button + button {
+  border-left: 1px solid var(--line);
+}
+
+.viewSwitch button.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+.viewSwitch button.active:hover {
+  background: var(--primary-dark);
+}
+
+.userShell {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(520px, 1fr);
+  gap: 16px;
+  min-height: calc(100vh - 91px);
+  padding: 16px;
+}
+
+.userShell[hidden],
+.appShell[hidden] {
+  display: none;
+}
+
+.userRail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  font-weight: 700;
+}
+
+.toggleRow input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.toggleRow .small {
+  font-weight: 400;
+}
+
 .appShell {
   display: grid;
   grid-template-columns: minmax(240px, 280px) minmax(520px, 1fr) minmax(340px, 420px);
@@ -308,23 +375,6 @@ hr {
   min-height: 0;
 }
 
-.editorPanel.is-locked .editorBody {
-  filter: blur(0.5px);
-  pointer-events: none;
-  user-select: none;
-}
-
-.lockedGate {
-  padding: 14px;
-  border-bottom: 1px solid var(--line);
-  background: #fff8e6;
-}
-
-.lockedGate p {
-  margin: 0 0 10px;
-  color: #4d3605;
-}
-
 .viewerChrome {
   display: flex;
   flex-direction: column;
@@ -560,7 +610,8 @@ hr {
     justify-content: space-between;
   }
 
-  .appShell {
+  .appShell,
+  .userShell {
     grid-template-columns: 1fr;
   }
 

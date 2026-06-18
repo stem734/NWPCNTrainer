@@ -21,11 +21,15 @@
 
 html,
 body {
-  min-height: 100%;
+  height: 100%;
 }
 
 body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   margin: 0;
+  overflow: hidden;
   background: var(--page);
   color: var(--ink);
   font-family: Arial, Helvetica, sans-serif;
@@ -35,11 +39,12 @@ body {
 
 .topbar {
   display: flex;
+  flex: 0 0 auto;
   justify-content: space-between;
   gap: 16px;
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
-  padding: 16px 22px 14px;
+  padding: 12px 22px;
 }
 
 header h1,
@@ -103,7 +108,9 @@ header h1 {
   display: grid;
   grid-template-columns: minmax(240px, 320px) minmax(520px, 1fr);
   gap: 16px;
-  min-height: calc(100vh - 91px);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
   padding: 16px;
 }
 
@@ -138,11 +145,56 @@ header h1 {
 }
 
 .appShell {
-  display: grid;
-  grid-template-columns: minmax(240px, 280px) minmax(520px, 1fr) minmax(340px, 420px);
-  gap: 16px;
-  min-height: calc(100vh - 91px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
   padding: 16px;
+}
+
+.projectBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 8px 12px;
+}
+
+.projectBar label {
+  margin: 0;
+  color: var(--muted);
+}
+
+.projectBar select {
+  width: auto;
+  min-width: 180px;
+  flex: 0 1 320px;
+}
+
+.projectBar button {
+  min-height: 32px;
+  padding: 6px 12px;
+}
+
+.projectBar .autosave {
+  margin: 0 0 0 auto;
+  padding-left: 8px;
+}
+
+.editorMain {
+  display: grid;
+  grid-template-columns: minmax(480px, 1fr) minmax(340px, 420px);
+  gap: 16px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .panel {
@@ -155,6 +207,7 @@ header h1 {
 }
 
 .panel > h2 {
+  flex: 0 0 auto;
   border-bottom: 1px solid var(--line);
   background: #f9fafb;
   padding: 12px 14px;
@@ -163,6 +216,14 @@ header h1 {
 
 .body {
   padding: 14px;
+}
+
+/* Inner scroll regions so columns stay within the viewport */
+.userRail .body,
+.editorBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 label {
@@ -202,7 +263,7 @@ input[type="file"] {
 }
 
 textarea {
-  min-height: 170px;
+  min-height: 110px;
   resize: vertical;
 }
 
@@ -367,8 +428,8 @@ hr {
   font-weight: 700;
 }
 
-.navRail,
 .viewerPanel,
+.canvasPanel,
 .editorPanel {
   display: flex;
   flex-direction: column;
@@ -380,10 +441,6 @@ hr {
   flex-direction: column;
   min-height: 0;
   height: 100%;
-}
-
-.viewerToolbar {
-  border-bottom: 1px solid var(--line);
 }
 
 .viewerFrameWrap {
@@ -424,37 +481,67 @@ hr {
   font-size: 1rem;
 }
 
-.navNote {
-  color: var(--muted);
-}
-
 .editorBody {
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
 
-.editorToolbar,
+.canvasToolbar,
 .viewerToolbar {
+  flex: 0 0 auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 10px;
-  background: #fff;
+  border-bottom: 1px solid var(--line);
+  background: #f9fafb;
 }
 
 .toolbar button,
-.editorToolbar button,
+.canvasToolbar button,
 .viewerToolbar button {
   min-height: 34px;
 }
 
-.editorStatus {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 0 0 10px;
+.canvasStatus {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.canvasTip {
+  position: fixed;
+  z-index: 25;
+  display: none;
+  width: min(360px, calc(100vw - 24px));
+  border: 1px solid #c8d0dc;
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px;
+  box-shadow: 0 18px 42px rgba(17, 24, 39, 0.18);
+  pointer-events: none;
+}
+
+.canvasTip.show {
+  display: block;
+}
+
+.canvasTip h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.canvasTip p {
+  margin: 0;
+  color: #2d3748;
+  white-space: pre-wrap;
+}
+
+.canvasTip .tipMeta {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 .stageWrap {
@@ -591,12 +678,27 @@ hr {
 }
 
 @media (max-width: 1180px) {
-.appShell {
-    grid-template-columns: minmax(260px, 320px) minmax(480px, 1fr);
+  /* Not enough width for fixed columns — fall back to natural page scrolling */
+  body {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
   }
 
-  .appShell > .editorPanel {
-    grid-column: 1 / -1;
+  .appShell,
+  .userShell,
+  .editorMain {
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .userRail .body,
+  .editorBody {
+    overflow-y: visible;
+  }
+
+  .viewerPanel {
+    min-height: 70vh;
   }
 }
 
@@ -610,7 +712,7 @@ hr {
     justify-content: space-between;
   }
 
-  .appShell,
+  .editorMain,
   .userShell {
     grid-template-columns: 1fr;
   }

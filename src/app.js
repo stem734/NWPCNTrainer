@@ -36,13 +36,13 @@
 
   function init() {
     [
-      "projectTitle", "publishToggle", "newProjectBtn", "saveNowBtn", "projectList", "loadProjectBtn",
+      "projectTitle", "publishToggle", "newProjectBtn", "saveNowBtn", "projectList",
       "deleteProjectBtn", "saveStatus", "imageInput", "importBtn", "exportProjectBtn", "jsonInput",
       "hotspotList", "drawBtn", "selectBtn", "panBtn", "fitBtn", "actualBtn", "modeText", "zoomText",
       "stageWrap", "stage", "selectedSelect", "hotTitle", "hotLabel", "hotGuidance", "hotMeta", "hotX",
-      "hotY", "hotW", "hotH", "deleteBtn", "duplicateBtn", "refreshPreviewBtn", "viewerFrame",
-      "topbarMeta", "viewerModeText", "viewerZoomText", "userModeBtn", "editorModeBtn", "userShell",
-      "editorShell", "userRail", "publicPageList", "publicTitleText", "publicFrame", "editorModal",
+      "hotY", "hotW", "hotH", "deleteBtn", "duplicateBtn",
+      "topbarMeta", "userModeBtn", "editorModeBtn", "userShell",
+      "editorShell", "userRail", "publicPageList", "publicTitleText", "publicFrame", "canvasTip", "editorModal",
       "editorPassphrase", "editorSubmitBtn", "editorCancelBtn", "editorModalText"
     ].forEach((id) => {
       els[id] = document.getElementById(id);
@@ -68,7 +68,7 @@
     });
     els.newProjectBtn.addEventListener("click", newProject);
     els.saveNowBtn.addEventListener("click", () => saveProject(true));
-    els.loadProjectBtn.addEventListener("click", loadSelectedProject);
+    els.projectList.addEventListener("change", loadSelectedProject);
     els.deleteProjectBtn.addEventListener("click", deleteSelectedProject);
     els.imageInput.addEventListener("change", handleImageUpload);
     els.importBtn.addEventListener("click", () => els.jsonInput.click());
@@ -119,7 +119,6 @@
     });
     els.deleteBtn.addEventListener("click", deleteSelectedHotspot);
     els.duplicateBtn.addEventListener("click", duplicateSelectedHotspot);
-    els.refreshPreviewBtn.addEventListener("click", updateViewer);
     els.userModeBtn.addEventListener("click", () => setViewMode("user"));
     els.editorModeBtn.addEventListener("click", requestEditorMode);
     els.editorCancelBtn.addEventListener("click", closeEditorModal);
@@ -182,6 +181,7 @@
 
   function onStagePointerDown(event) {
     if (!state.image) return;
+    hideCanvasTip();
 
     const panRequested = state.mode === "pan" || state.isSpaceDown || event.button === 1;
     if (panRequested) {
@@ -366,7 +366,6 @@
     renderLists();
     populateEditor();
     updateButtons();
-    updateViewer();
     updateTopbarMeta();
   }
 
@@ -433,8 +432,67 @@
         }
       });
 
+      // WYSIWYG guidance preview: hover shows the same tooltip users will see.
+      box.addEventListener("mouseenter", (event) => showCanvasTip(hotspot, event));
+      box.addEventListener("mousemove", moveCanvasTip);
+      box.addEventListener("mouseleave", hideCanvasTip);
+      box.addEventListener("focus", (event) => showCanvasTip(hotspot, event));
+      box.addEventListener("blur", hideCanvasTip);
+
       els.stage.appendChild(box);
     });
+  }
+
+  function showCanvasTip(hotspot, event) {
+    if (state.action) return;
+    els.canvasTip.textContent = "";
+    const heading = document.createElement("h3");
+    heading.textContent = hotspot.title || hotspot.label || "Hotspot";
+    const body = document.createElement("p");
+    body.textContent = hotspot.guidance || "No guidance added yet.";
+    els.canvasTip.appendChild(heading);
+    els.canvasTip.appendChild(body);
+    if (hotspot.meta) {
+      const meta = document.createElement("div");
+      meta.className = "tipMeta";
+      meta.textContent = hotspot.meta;
+      els.canvasTip.appendChild(meta);
+    }
+    els.canvasTip.classList.add("show");
+    positionCanvasTip(tipPointFromEvent(event));
+  }
+
+  function moveCanvasTip(event) {
+    if (!els.canvasTip.classList.contains("show")) return;
+    positionCanvasTip(tipPointFromEvent(event));
+  }
+
+  function hideCanvasTip() {
+    els.canvasTip.classList.remove("show");
+  }
+
+  function tipPointFromEvent(event) {
+    if (event && typeof event.clientX === "number" && event.clientX !== 0) {
+      return { clientX: event.clientX, clientY: event.clientY };
+    }
+    const target = event && event.currentTarget;
+    if (target && target.getBoundingClientRect) {
+      const rect = target.getBoundingClientRect();
+      return { clientX: rect.left, clientY: rect.bottom };
+    }
+    return { clientX: window.innerWidth / 2, clientY: 120 };
+  }
+
+  function positionCanvasTip(point) {
+    const pad = 12;
+    const offset = 18;
+    const rect = els.canvasTip.getBoundingClientRect();
+    let left = point.clientX + offset;
+    let top = point.clientY + offset;
+    if (left + rect.width + pad > window.innerWidth) left = point.clientX - rect.width - offset;
+    if (top + rect.height + pad > window.innerHeight) top = window.innerHeight - rect.height - pad;
+    els.canvasTip.style.left = `${Math.max(pad, left)}px`;
+    els.canvasTip.style.top = `${Math.max(pad, top)}px`;
   }
 
   function renderLists() {
@@ -598,7 +656,6 @@
     els.stage.style.marginRight = "12px";
     els.stage.style.marginBottom = "12px";
     els.zoomText.textContent = state.zoom === "actual" ? "Zoom: 100%" : `Zoom: ${Math.round(state.scale * 100)}%`;
-    els.viewerZoomText.textContent = `Preview scale: ${state.zoom === "actual" ? "100%" : `${Math.round(state.scale * 100)}%`}`;
     if (state.zoom === "fit" || previousScale !== state.scale) {
       positionStageForFit(false);
     }
@@ -994,7 +1051,6 @@
     if (mode === "user") {
       renderPublicCatalog();
     } else {
-      updateViewer();
       applyZoom();
     }
   }
@@ -1102,12 +1158,6 @@
     }
     els.publicTitleText.textContent = project.title || "Untitled training page";
     els.publicFrame.srcdoc = buildTrainingHtml(project);
-  }
-
-  function updateViewer() {
-    if (!els.viewerFrame) return;
-    els.viewerFrame.srcdoc = buildTrainingHtml();
-    els.viewerModeText.textContent = state.image ? "Live preview" : "Preview ready when a screenshot is loaded";
   }
 
   function clamp(value, min, max) {

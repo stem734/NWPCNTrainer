@@ -46,37 +46,33 @@
 
 <!-- EDITOR VIEW -->
 <div class="appShell" id="editorShell" hidden>
-  <aside class="navRail panel">
-    <h2>Training pages</h2>
-    <div class="body">
-      <label for="projectList">Select page</label>
-      <select id="projectList"></select>
-      <div class="row">
-        <button id="loadProjectBtn">Load</button>
-        <button id="newProjectBtn" class="primary">New</button>
-      </div>
-      <div class="row">
-        <button id="saveNowBtn">Save now</button>
-        <button id="deleteProjectBtn" class="danger">Delete</button>
-      </div>
-      <div class="autosave" id="saveStatus">Autosave ready</div>
-      <hr>
-      <div class="navNote">
-        Use this rail to swap between the training pages you have built.
-      </div>
-    </div>
-  </aside>
+  <div class="projectBar">
+    <label for="projectList">Page</label>
+    <select id="projectList"></select>
+    <button id="newProjectBtn" class="primary">New</button>
+    <button id="saveNowBtn">Save</button>
+    <button id="deleteProjectBtn" class="danger">Delete</button>
+    <span class="autosave" id="saveStatus">Autosave ready</span>
+  </div>
 
-  <main class="panel viewerPanel">
-    <h2>Live preview</h2>
-    <div class="viewerChrome">
-      <div class="toolbar viewerToolbar">
-        <span class="small" id="viewerModeText">Live preview</span>
-        <span class="small" id="viewerZoomText">Matches the user view</span>
-        <button id="refreshPreviewBtn">Refresh preview</button>
-      </div>
-      <div class="viewerFrameWrap">
-        <iframe id="viewerFrame" title="Live training page preview"></iframe>
+  <div class="editorMain">
+    <main class="panel canvasPanel">
+    <div class="toolbar canvasToolbar">
+      <button id="drawBtn" class="primary">Add hotspot</button>
+      <button id="selectBtn">Select / move</button>
+      <button id="panBtn">Pan view</button>
+      <button id="fitBtn">Fit</button>
+      <button id="actualBtn">100%</button>
+      <span class="small canvasStatus"><span id="modeText">Mode: add hotspot</span> &middot; <span id="zoomText">Zoom: fit</span></span>
+    </div>
+    <div class="stageWrap" id="stageWrap">
+      <div id="stage" class="stage">
+        <div class="placeholder">
+          <div>
+            <h2>Load a SystmOne screenshot to start</h2>
+            <p>Then click <b>Add hotspot</b> and draw boxes over the sections staff need guidance on.</p>
+          </div>
+        </div>
       </div>
     </div>
   </main>
@@ -116,31 +112,7 @@
 
       <h3>Hotspots</h3>
       <div id="hotspotList" class="list"></div>
-      <p class="small"><span class="kbd">Add hotspot</span> then drag on the screenshot. Use <span class="kbd">Pan view</span>, middle mouse, or hold <span class="kbd">Space</span> to drag around a large image.</p>
-
-      <hr>
-
-      <div class="toolbar editorToolbar">
-        <button id="drawBtn" class="primary">Add hotspot</button>
-        <button id="selectBtn">Select / move</button>
-        <button id="panBtn">Pan view</button>
-        <button id="fitBtn">Fit to workspace</button>
-        <button id="actualBtn">100% actual pixels</button>
-      </div>
-      <div class="editorStatus">
-        <span class="small" id="modeText">Mode: add hotspot</span>
-        <span class="small" id="zoomText">Zoom: fit</span>
-      </div>
-      <div class="stageWrap" id="stageWrap">
-        <div id="stage" class="stage">
-          <div class="placeholder">
-            <div>
-              <h2>Load a SystmOne screenshot to start</h2>
-              <p>Then click <b>Add hotspot</b> and draw boxes over the sections staff need guidance on.</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <p class="small">Use <span class="kbd">Add hotspot</span> then drag on the canvas. Use <span class="kbd">Pan view</span>, middle mouse, or hold <span class="kbd">Space</span> to drag around a large image.</p>
 
       <hr>
 
@@ -172,10 +144,13 @@
         <button id="duplicateBtn">Duplicate</button>
       </div>
 
-      <p class="small top-gap">The live preview mirrors exactly what users see. Toggle <b>Published</b> above to make this page available in the User view.</p>
+      <p class="small top-gap">Toggle <b>Published</b> above to make this page available to staff in the User view.</p>
     </div>
   </aside>
+  </div>
 </div>
+
+<aside class="canvasTip" id="canvasTip" aria-live="polite"></aside>
 
 <div class="modalBackdrop hidden" id="editorModal">
   <div class="modalCard panel">

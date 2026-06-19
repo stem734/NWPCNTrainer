@@ -953,12 +953,17 @@
     .topbar h1 { margin: 0; font-size: 1.2rem; font-weight: 800; letter-spacing: -0.01em; color: #0a2d5e; }
     .topbar p { margin: 3px 0 0; color: #003d78; opacity: 0.85; font-size: 0.88rem; }
     .topbar .count { display: inline-flex; align-items: center; padding: 0.3rem 0.7rem; border-radius: 999px; background: #005eb8; color: #fff; font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
+    .topbar .flashBtn { padding: 8px 14px; border: none; border-radius: 6px; background: #005eb8; color: #fff; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
+    .topbar .flashBtn.active { background: #0f7bdc; }
     .main { padding: 24px; }
     .contentShell { max-width: 1600px; margin: 0 auto; }
     .screen { position: relative; width: 100%; background: #fff; border: 1px solid #d8dde0; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(16, 32, 51, 0.07); }
     .screen img { display: block; width: 100%; height: auto; }
     .spot { position: absolute; border: 2px dashed rgba(0, 94, 184, 0.45); border-radius: 4px; background: rgba(0, 94, 184, 0.08); cursor: help; transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease; }
     .spot:hover, .spot:focus, .spot.active { border-style: solid; border-color: #005eb8; background: rgba(0, 94, 184, 0.16); outline: 0; box-shadow: 0 0 0 2px rgba(255,255,255,.92), 0 10px 30px rgba(0, 94, 184, .22); }
+    .spot.visited { border-color: #157347; }
+    .spot.visited::after { content: "✓"; position: absolute; top: 4px; right: 5px; width: 16px; height: 16px; border-radius: 999px; display: grid; place-items: center; background: #157347; color: #fff; font-size: 11px; font-weight: 800; line-height: 1; }
+    .spot.unviewed.flash { animation: flash 0.6s ease-in-out 2; }
     .spot span { position: absolute; left: -2px; top: -30px; display: none; max-width: min(300px, 82vw); overflow: hidden; border-radius: 5px; background: #005eb8; color: #fff; padding: 4px 8px; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
     .spot:hover span, .spot:focus span, .spot.active span { display: block; }
     .tip { position: fixed; z-index: 10; display: none; width: min(360px, calc(100vw - 24px)); border: 1px solid #d8dde0; border-left: 4px solid #005eb8; border-radius: 8px; background: #fff; padding: 16px; box-shadow: 0 16px 36px rgba(16, 32, 51, 0.18); }
@@ -978,7 +983,7 @@
       <p>Hover or tap a highlighted area for guidance.</p>
     </div>
     <div style="display: flex; gap: 12px; align-items: center;">
-      ${hotspots.length ? '<button id="flashBtn" style="padding: 8px 14px; border: none; border-radius: 6px; background: #005eb8; color: #fff; font-weight: 500; font-size: 0.9rem; cursor: pointer;">Flash hotspots</button>' : ""}
+      ${hotspots.length ? '<button id="flashBtn" class="flashBtn" type="button">Flash unviewed</button>' : ""}
       <span class="count">${hotspots.length} hotspot${hotspots.length === 1 ? "" : "s"}</span>
     </div>
   </header>
@@ -990,7 +995,7 @@
   </main>
   <aside class="tip" id="tip" aria-live="polite"></aside>
   <script>
-    const hotspots = ${hotspotData};
+    const hotspots = ${hotspotData}.map((hotspot) => ({ ...hotspot, visited: false, timer: null }));
     const screen = document.getElementById("screen");
     const tip = document.getElementById("tip");
     if (screen) {
@@ -1018,24 +1023,42 @@
       tip.classList.remove("show");
       document.querySelectorAll(".spot.active").forEach((node) => node.classList.remove("active"));
     }
-    const hoveredIds = new Set();
-    function flashUnhovered() {
-      document.querySelectorAll(".spot").forEach((spot) => {
-        const hotspoIndex = Array.from(spot.parentNode.children).indexOf(spot);
-        if (!hoveredIds.has(hotspoIndex)) {
-          spot.classList.add("flash");
-          setTimeout(() => spot.classList.remove("flash"), 600);
-        }
-      });
-    }
     const flashBtn = document.getElementById("flashBtn");
-    if (flashBtn) {
-      flashBtn.addEventListener("click", flashUnhovered);
+    function markVisited(hotspot, spot) {
+      hotspot.visited = true;
+      spot.classList.add("visited");
+      spot.classList.remove("unviewed", "flash");
     }
+    function startVisitTimer(hotspot, spot, event) {
+      clearTimeout(hotspot.timer);
+      hotspot.timer = setTimeout(() => {
+        markVisited(hotspot, spot);
+        showTip(hotspot, event);
+      }, 2000);
+    }
+    function clearVisitTimer(hotspot) {
+      clearTimeout(hotspot.timer);
+      hotspot.timer = null;
+    }
+    function flashUnviewed() {
+      const unviewed = hotspots.filter((hotspot) => !hotspot.visited);
+      if (!unviewed.length) return;
+      flashBtn.classList.add("active");
+      unviewed.forEach((hotspot) => {
+        const spot = document.querySelector('.spot[data-id="' + hotspot.id + '"]');
+        if (!spot) return;
+        spot.classList.add("flash", "unviewed");
+        window.setTimeout(() => spot.classList.remove("flash"), 1200);
+      });
+      window.setTimeout(() => flashBtn.classList.remove("active"), 900);
+    }
+    if (flashBtn) flashBtn.addEventListener("click", flashUnviewed);
     hotspots.forEach((hotspot, index) => {
       const spot = document.createElement("button");
       spot.type = "button";
       spot.className = "spot";
+      spot.dataset.id = hotspot.id;
+      spot.classList.add("unviewed");
       spot.style.left = hotspot.x + "%";
       spot.style.top = hotspot.y + "%";
       spot.style.width = hotspot.w + "%";
@@ -1045,25 +1068,31 @@
       label.textContent = hotspot.label || hotspot.title || "Hotspot";
       spot.appendChild(label);
       spot.addEventListener("mouseenter", (event) => {
-        hoveredIds.add(index);
-        showTip(hotspot, event);
+        spot.classList.add("active");
+        startVisitTimer(hotspot, spot, event);
       });
       spot.addEventListener("mousemove", moveTip);
-      spot.addEventListener("mouseleave", hideTip);
-      spot.addEventListener("focus", (event) => {
-        hoveredIds.add(index);
-        spot.classList.add("active");
-        showTip(hotspot, event);
+      spot.addEventListener("mouseleave", () => {
+        clearVisitTimer(hotspot);
+        spot.classList.remove("active");
+        hideTip();
       });
-      spot.addEventListener("blur", hideTip);
+      spot.addEventListener("focus", (event) => {
+        spot.classList.add("active");
+        startVisitTimer(hotspot, spot, event);
+      });
+      spot.addEventListener("blur", () => {
+        clearVisitTimer(hotspot);
+        spot.classList.remove("active");
+        hideTip();
+      });
       spot.addEventListener("click", (event) => {
-        hoveredIds.add(index);
         spot.classList.add("active");
         showTip(hotspot, event);
       });
       spot.addEventListener("touchstart", (event) => {
-        hoveredIds.add(index);
-        showTip(hotspot, event.touches[0]);
+        spot.classList.add("active");
+        startVisitTimer(hotspot, spot, event.touches[0]);
       });
       screen.appendChild(spot);
     });

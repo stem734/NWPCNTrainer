@@ -1,18 +1,23 @@
 (function () {
   "use strict";
 
-  const DB_NAME = "s1-hotspot-training-builder";
-  const DB_VERSION = 1;
-  const STORE = "projects";
-  const LS_KEY = "s1-hotspot-training-builder-projects";
-  const PASS_KEY = "s1-hotspot-training-builder-editor-passhash";
-  const SESSION_KEY = "s1-hotspot-training-builder-editor-unlocked";
+  const CONFIG = window.TRAINER_CONFIG || {};
+  const TABLE = CONFIG.table || "training_pages";
+  const BUCKET = CONFIG.bucket || "training-images";
   const MIN_SIZE = 1.2;
 
+  // Supabase client (loaded via CDN as window.supabase). Shared MyMedInfo project.
+  const SB = (window.supabase && CONFIG.supabaseUrl)
+    ? window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey, {
+        auth: { persistSession: true, autoRefreshToken: true }
+      })
+    : null;
+
   const state = {
-    projectId: makeId("project"),
+    projectId: newId(),
     title: "Reception Visualisation Training",
     image: "",
+    imagePath: "",
     imageName: "",
     imageWidth: 0,
     imageHeight: 0,
@@ -26,6 +31,7 @@
     action: null,
     saveTimer: 0,
     dirty: false,
+    isEditor: false,
     viewMode: "user",
     publicPageId: ""
   };
@@ -41,20 +47,27 @@
       "hotspotList", "drawBtn", "selectBtn", "panBtn", "fitBtn", "actualBtn", "modeText", "zoomText",
       "stageWrap", "stage", "selectedSelect", "hotTitle", "hotLabel", "hotGuidance", "hotMeta", "hotX",
       "hotY", "hotW", "hotH", "deleteBtn", "duplicateBtn",
-      "topbarMeta", "userModeBtn", "editorModeBtn", "userShell",
+      "topbarMeta", "userModeBtn", "editorModeBtn", "signOutBtn", "userShell",
       "editorShell", "userRail", "publicPageList", "publicFrame", "canvasTip", "editorModal",
-      "editorPassphrase", "editorSubmitBtn", "editorCancelBtn", "editorModalText"
+      "editorEmail", "editorPassword", "editorSubmitBtn", "editorCancelBtn", "editorModalText"
     ].forEach((id) => {
       els[id] = document.getElementById(id);
     });
 
     wireEvents();
     setMode("draw");
-    refreshProjects();
     render();
-    setStatus("Autosave ready");
+    setStatus(SB ? "Ready" : "Backend not configured");
     applyViewMode();
     renderPublicCatalog();
+  }
+
+  function newId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+    });
   }
 
   function wireEvents() {
@@ -121,11 +134,15 @@
     els.duplicateBtn.addEventListener("click", duplicateSelectedHotspot);
     els.userModeBtn.addEventListener("click", () => setViewMode("user"));
     els.editorModeBtn.addEventListener("click", requestEditorMode);
+    els.signOutBtn.addEventListener("click", signOutEditor);
     els.editorCancelBtn.addEventListener("click", closeEditorModal);
-    els.editorSubmitBtn.addEventListener("click", submitEditorPassphrase);
-    els.editorPassphrase.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") submitEditorPassphrase();
+    els.editorSubmitBtn.addEventListener("click", submitEditorLogin);
+    els.editorPassword.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") submitEditorLogin();
       if (event.key === "Escape") closeEditorModal();
+    });
+    els.editorEmail.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") els.editorPassword.focus();
     });
   }
 
@@ -137,9 +154,10 @@
       saveProject(false);
     }
     Object.assign(state, {
-      projectId: makeId("project"),
+      projectId: newId(),
       title: "Untitled training guide",
       image: "",
+      imagePath: "",
       imageName: "",
       imageWidth: 0,
       imageHeight: 0,
@@ -159,24 +177,34 @@
   function handleImageUpload(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        state.image = reader.result;
-        state.imageName = file.name;
-        state.imageWidth = img.naturalWidth;
-        state.imageHeight = img.naturalHeight;
-        state.selectedId = "";
+    const localUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = async () => {
+      state.imageWidth = img.naturalWidth;
+      state.imageHeight = img.naturalHeight;
+      state.imageName = file.name;
+      state.selectedId = "";
+      // Show immediately from the local file while we upload.
+      state.image = localUrl;
+      render();
+      applyZoom();
+      setStatus("Uploading image…");
+      try {
+        const path = await uploadImage(file);
+        state.imagePath = path;
+        state.image = publicUrl(path);
+        setStatus("Image uploaded");
         render();
-        applyZoom();
         markDirty();
-      };
-      img.onerror = () => setStatus("Could not read that image file");
-      img.src = reader.result;
+      } catch (err) {
+        setStatus("Image upload failed: " + (err.message || err));
+      } finally {
+        window.setTimeout(() => URL.revokeObjectURL(localUrl), 5000);
+      }
     };
-    reader.readAsDataURL(file);
+    img.onerror = () => setStatus("Could not read that image file");
+    img.src = localUrl;
+    event.target.value = "";
   }
 
   function onStagePointerDown(event) {
@@ -675,42 +703,43 @@
   }
 
   async function saveProject(showMessage) {
-    const project = getSerializableProject();
+    if (!state.isEditor) return;
+    const row = getSerializableRow();
+    setStatus("Saving…");
     try {
-      await dbPut(project);
+      const session = await currentSession();
+      row.updated_by = session && session.user ? session.user.id : null;
+      const saved = await saveRow(row);
       state.dirty = false;
-      if (showMessage) {
-        setStatus("Saved");
-      } else {
-        setStatus("Autosaved");
-      }
-      refreshProjects(project.id);
+      if (saved && saved.created_at) state.createdAt = saved.created_at;
+      setStatus("Saved");
+      await refreshProjects(state.projectId);
       renderPublicCatalog();
     } catch (err) {
-      setStatus("Save failed in this browser");
+      setStatus("Save failed: " + (err.message || err));
     }
   }
 
   async function refreshProjects(selectId) {
-    let projects = [];
+    let rows = [];
     try {
-      projects = await dbAll();
+      rows = await listAllRows();
     } catch (err) {
-      setStatus("Saved-project list is unavailable in this browser");
+      setStatus("Could not load the page list: " + (err.message || err));
     }
-    projects.sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
     els.projectList.innerHTML = "";
-    if (!projects.length) {
+    if (!rows.length) {
       const option = document.createElement("option");
       option.value = "";
-      option.textContent = "No saved projects";
+      option.textContent = "No saved pages";
       els.projectList.appendChild(option);
       return;
     }
-    projects.forEach((project) => {
+    rows.forEach((row) => {
       const option = document.createElement("option");
-      option.value = project.id;
-      option.textContent = `${project.title || "Untitled"} - ${formatDate(project.updatedAt)}`;
+      option.value = row.id;
+      const flag = row.published ? "" : " (draft)";
+      option.textContent = `${row.title || "Untitled"}${flag} — ${formatDate(row.updated_at)}`;
       els.projectList.appendChild(option);
     });
     els.projectList.value = selectId || state.projectId;
@@ -718,30 +747,36 @@
 
   async function loadSelectedProject() {
     const id = els.projectList.value;
-    if (!id) return;
-    let project = null;
+    if (!id || id === state.projectId) return;
+    let row = null;
     try {
-      project = await dbGet(id);
+      row = await getRow(id);
     } catch (err) {
-      setStatus("Could not load saved projects in this browser");
+      setStatus("Could not load that page: " + (err.message || err));
       return;
     }
-    if (!project) {
-      setStatus("Project was not found");
+    if (!row) {
+      setStatus("Page was not found");
       return;
     }
-    loadProject(project);
-    setStatus("Project loaded");
+    loadProject(rowToProject(row));
+    setStatus("Page loaded");
   }
 
   async function deleteSelectedProject() {
     const id = els.projectList.value;
     if (!id) return;
-    if (!window.confirm("Delete the selected saved project from this browser?")) return;
+    if (!window.confirm("Delete this training page for everyone? This cannot be undone.")) return;
+    let imagePath = state.projectId === id ? state.imagePath : "";
     try {
-      await dbDelete(id);
+      if (!imagePath) {
+        const row = await getRow(id);
+        imagePath = row && row.image_path;
+      }
+      await deleteRow(id);
+      if (imagePath) await removeImage(imagePath);
     } catch (err) {
-      setStatus("Could not delete that saved project");
+      setStatus("Could not delete that page: " + (err.message || err));
       return;
     }
     if (id === state.projectId) {
@@ -749,51 +784,59 @@
     }
     refreshProjects();
     renderPublicCatalog();
-    setStatus("Project deleted");
+    setStatus("Page deleted");
   }
 
   function loadProject(project) {
-    Object.assign(state, normalizeProject(project), {
-      action: null,
-      dirty: false
-    });
+    Object.assign(state, project, { action: null, dirty: false });
     els.projectTitle.value = state.title;
     els.imageInput.value = "";
     render();
     applyZoom();
   }
 
-  function getSerializableProject() {
+  // Convert the live editor state into a training_pages row.
+  function getSerializableRow() {
     return {
       id: state.projectId,
       title: state.title,
-      image: state.image,
-      imageName: state.imageName,
-      imageWidth: state.imageWidth,
-      imageHeight: state.imageHeight,
       published: Boolean(state.published),
+      image_path: state.imagePath || null,
+      image_width: state.imageWidth || null,
+      image_height: state.imageHeight || null,
       hotspots: state.hotspots,
-      selectedId: state.selectedId,
-      createdAt: state.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      version: 1
+      updated_at: new Date().toISOString()
     };
   }
 
-  function normalizeProject(project) {
+  // Convert a training_pages row into the live editor state shape.
+  function rowToProject(row) {
+    const imagePath = row.image_path || "";
     return {
-      projectId: project.id || makeId("project"),
-      title: project.title || "Untitled training guide",
-      image: project.image || "",
-      imageName: project.imageName || "",
-      imageWidth: Number(project.imageWidth) || 0,
-      imageHeight: Number(project.imageHeight) || 0,
-      published: Boolean(project.published),
-      hotspots: Array.isArray(project.hotspots) ? project.hotspots.map(normalizeHotspot) : [],
-      selectedId: project.selectedId || "",
+      projectId: row.id,
+      title: row.title || "Untitled training guide",
+      imagePath: imagePath,
+      image: imagePath ? publicUrl(imagePath) : "",
+      imageName: row.title || "",
+      imageWidth: Number(row.image_width) || 0,
+      imageHeight: Number(row.image_height) || 0,
+      published: Boolean(row.published),
+      hotspots: Array.isArray(row.hotspots) ? row.hotspots.map(normalizeHotspot) : [],
+      selectedId: "",
       zoom: "fit",
       scale: 1,
-      createdAt: project.createdAt || new Date().toISOString()
+      createdAt: row.created_at || new Date().toISOString()
+    };
+  }
+
+  // Build the project object the public renderer expects from a row.
+  function rowToPublic(row) {
+    return {
+      id: row.id,
+      title: row.title || "Untitled training page",
+      image: row.image_path ? publicUrl(row.image_path) : "",
+      imageName: row.title || "",
+      hotspots: Array.isArray(row.hotspots) ? row.hotspots : []
     };
   }
 
@@ -812,30 +855,64 @@
   }
 
   function exportProjectJson() {
-    downloadFile(`${slugify(state.title)}.project.json`, JSON.stringify(getSerializableProject(), null, 2), "application/json");
+    const data = { ...getSerializableRow(), image_url: state.image, image_name: state.imageName };
+    downloadFile(`${slugify(state.title)}.project.json`, JSON.stringify(data, null, 2), "application/json");
   }
 
-  function handleJsonImport(event) {
+  async function handleJsonImport(event) {
     const file = event.target.files && event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const project = JSON.parse(reader.result);
-        const normalized = normalizeProject(project);
-        normalized.projectId = makeId("project");
-        loadProject({ ...project, id: normalized.projectId });
-        saveProject(true);
-      } catch (err) {
-        window.alert("That JSON file could not be imported.");
-      }
-    };
-    reader.readAsText(file);
     event.target.value = "";
+    if (!file) return;
+    if (!state.isEditor) {
+      setStatus("Sign in to import a page");
+      return;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch (err) {
+      window.alert("That JSON file could not be imported.");
+      return;
+    }
+    const project = {
+      projectId: newId(),
+      title: parsed.title || "Imported training page",
+      imagePath: "",
+      image: "",
+      imageName: parsed.image_name || parsed.imageName || parsed.title || "",
+      imageWidth: Number(parsed.image_width || parsed.imageWidth) || 0,
+      imageHeight: Number(parsed.image_height || parsed.imageHeight) || 0,
+      published: false,
+      hotspots: Array.isArray(parsed.hotspots) ? parsed.hotspots.map(normalizeHotspot) : [],
+      selectedId: "",
+      zoom: "fit",
+      scale: 1,
+      createdAt: new Date().toISOString()
+    };
+    try {
+      if (parsed.image && /^data:/.test(parsed.image)) {
+        const blob = await (await fetch(parsed.image)).blob();
+        const imported = new File([blob], `${slugify(project.title) || "import"}.png`, { type: blob.type || "image/png" });
+        project.imagePath = await uploadImage(imported);
+        project.image = publicUrl(project.imagePath);
+      } else if (parsed.image_path) {
+        project.imagePath = parsed.image_path;
+        project.image = publicUrl(parsed.image_path);
+      }
+    } catch (err) {
+      setStatus("Imported, but image upload failed: " + (err.message || err));
+    }
+    loadProject(project);
+    await saveProject(true);
   }
 
   function buildTrainingHtml(source) {
-    const project = source || getSerializableProject();
+    const project = source || {
+      title: state.title,
+      image: state.image,
+      imageName: state.imageName,
+      hotspots: state.hotspots
+    };
     const safeTitle = escapeHtml(project.title);
     const hotspots = Array.isArray(project.hotspots) ? project.hotspots : [];
     const hotspotData = JSON.stringify(hotspots).replace(/</g, "\\u003c");
@@ -942,87 +1019,94 @@
 </html>`;
   }
 
-  function openDb() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains(STORE)) {
-          db.createObjectStore(STORE, { keyPath: "id" });
-        }
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+  // ----- Supabase data access -----
+
+  function requireBackend() {
+    if (!SB) throw new Error("Supabase is not configured");
+    return SB;
   }
 
-  async function dbPut(project) {
+  async function listAllRows() {
+    const { data, error } = await requireBackend()
+      .from(TABLE)
+      .select("*")
+      .order("updated_at", { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  async function listPublishedRows() {
+    const { data, error } = await requireBackend()
+      .from(TABLE)
+      .select("*")
+      .eq("published", true)
+      .order("title", { ascending: true });
+    if (error) throw error;
+    return data || [];
+  }
+
+  async function getRow(id) {
+    const { data, error } = await requireBackend()
+      .from(TABLE)
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async function saveRow(row) {
+    const { data, error } = await requireBackend()
+      .from(TABLE)
+      .upsert(row)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  async function deleteRow(id) {
+    const { error } = await requireBackend().from(TABLE).delete().eq("id", id);
+    if (error) throw error;
+  }
+
+  async function uploadImage(file) {
+    const ext = (file.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const path = `${newId()}.${ext || "png"}`;
+    const { error } = await requireBackend()
+      .storage.from(BUCKET)
+      .upload(path, file, { contentType: file.type || "image/png", upsert: false });
+    if (error) throw error;
+    return path;
+  }
+
+  async function removeImage(path) {
+    if (!path) return;
     try {
-      const db = await openDb();
-      return await txRequest(db, "readwrite", (store) => store.put(project));
+      await requireBackend().storage.from(BUCKET).remove([path]);
     } catch (err) {
-      return localPut(project);
+      // Non-fatal: the row is already gone; a stray image is harmless.
     }
   }
 
-  async function dbGet(id) {
-    try {
-      const db = await openDb();
-      return await txRequest(db, "readonly", (store) => store.get(id));
-    } catch (err) {
-      return localGet(id);
-    }
+  function publicUrl(path) {
+    if (!SB || !path) return "";
+    return SB.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
   }
 
-  async function dbAll() {
-    try {
-      const db = await openDb();
-      return await txRequest(db, "readonly", (store) => store.getAll());
-    } catch (err) {
-      return localAll();
-    }
+  // ----- Auth (editors = MyMedInfo admins) -----
+
+  async function currentSession() {
+    if (!SB) return null;
+    const { data } = await SB.auth.getSession();
+    return data ? data.session : null;
   }
 
-  async function dbDelete(id) {
-    try {
-      const db = await openDb();
-      return await txRequest(db, "readwrite", (store) => store.delete(id));
-    } catch (err) {
-      return localDelete(id);
-    }
-  }
-
-  function txRequest(db, mode, createRequest) {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE, mode);
-      const request = createRequest(tx.objectStore(STORE));
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-      tx.oncomplete = () => db.close();
-      tx.onerror = () => {
-        db.close();
-        reject(tx.error);
-      };
-    });
-  }
-
-  function localAll() {
-    return JSON.parse(localStorage.getItem(LS_KEY) || "[]");
-  }
-
-  function localPut(project) {
-    const projects = localAll().filter((item) => item.id !== project.id);
-    projects.push(project);
-    localStorage.setItem(LS_KEY, JSON.stringify(projects));
-    return project;
-  }
-
-  function localGet(id) {
-    return localAll().find((project) => project.id === id);
-  }
-
-  function localDelete(id) {
-    localStorage.setItem(LS_KEY, JSON.stringify(localAll().filter((project) => project.id !== id)));
+  async function checkEditor() {
+    if (!SB) return false;
+    const { data, error } = await SB.rpc("is_training_editor");
+    if (error) return false;
+    return data === true;
   }
 
   function downloadFile(filename, content, type) {
@@ -1068,88 +1152,115 @@
     updateTopbarMeta();
   }
 
-  function requestEditorMode() {
-    if (sessionStorage.getItem(SESSION_KEY) === "1") {
-      setViewMode("editor");
-      return;
+  async function requestEditorMode() {
+    setStatus("Checking access…");
+    const session = await currentSession();
+    if (session) {
+      state.isEditor = await checkEditor();
+      if (state.isEditor) {
+        await enterEditor();
+        return;
+      }
     }
     openEditorModal();
   }
 
+  async function enterEditor() {
+    setViewMode("editor");
+    setStatus("Ready");
+    await refreshProjects(state.projectId);
+  }
+
   function openEditorModal() {
     els.editorModal.classList.remove("hidden");
-    els.editorPassphrase.value = "";
-    els.editorPassphrase.focus();
-    els.editorModalText.textContent = localStorage.getItem(PASS_KEY)
-      ? "Enter the existing editor passphrase."
-      : "No passphrase is set yet. This browser will create one when you unlock.";
+    els.editorEmail.value = "";
+    els.editorPassword.value = "";
+    els.editorModalText.textContent = SB
+      ? "Sign in with your MyMedInfo admin account to edit."
+      : "Editing is unavailable: the backend is not configured.";
+    els.editorEmail.focus();
   }
 
   function closeEditorModal() {
     els.editorModal.classList.add("hidden");
   }
 
-  async function submitEditorPassphrase() {
-    const passphrase = els.editorPassphrase.value.trim();
-    if (!passphrase) return;
-    const existing = localStorage.getItem(PASS_KEY);
-    const hash = await sha256(passphrase);
-    if (existing && existing !== hash) {
-      els.editorModalText.textContent = "That passphrase did not match.";
+  async function submitEditorLogin() {
+    if (!SB) return;
+    const email = els.editorEmail.value.trim();
+    const password = els.editorPassword.value;
+    if (!email || !password) {
+      els.editorModalText.textContent = "Enter your email and password.";
       return;
     }
-    if (!existing) {
-      localStorage.setItem(PASS_KEY, hash);
+    els.editorModalText.textContent = "Signing in…";
+    const { error } = await SB.auth.signInWithPassword({ email, password });
+    if (error) {
+      els.editorModalText.textContent = error.message || "Sign in failed.";
+      return;
     }
-    sessionStorage.setItem(SESSION_KEY, "1");
+    state.isEditor = await checkEditor();
+    if (!state.isEditor) {
+      els.editorModalText.textContent = "This account is not an authorised training editor.";
+      await SB.auth.signOut();
+      return;
+    }
     closeEditorModal();
-    setViewMode("editor");
+    await enterEditor();
+  }
+
+  async function signOutEditor() {
+    if (SB) await SB.auth.signOut();
+    state.isEditor = false;
+    setViewMode("user");
+    setStatus("Signed out");
   }
 
   // ----- Public (user-facing) catalogue -----
 
   async function renderPublicCatalog() {
-    let projects = [];
+    let published = [];
     try {
-      projects = await dbAll();
+      published = await listPublishedRows();
     } catch (err) {
-      projects = [];
+      published = [];
     }
-    const published = projects
-      .filter((project) => project && project.published)
-      .sort((a, b) => (a.title || "").localeCompare(b.title || ""));
 
     els.publicPageList.innerHTML = "";
 
     if (!published.length) {
       const empty = document.createElement("p");
       empty.className = "emptyState";
-      empty.textContent = "No training pages have been published yet.";
+      empty.textContent = SB
+        ? "No training pages have been published yet."
+        : "The backend is not configured yet.";
       els.publicPageList.appendChild(empty);
       showPublicPage(null);
       return;
     }
 
-    if (!published.some((project) => project.id === state.publicPageId)) {
+    if (!published.some((row) => row.id === state.publicPageId)) {
       state.publicPageId = published[0].id;
     }
 
-    published.forEach((project) => {
+    published.forEach((row) => {
+      const count = (row.hotspots || []).length;
       const item = document.createElement("button");
       item.type = "button";
       item.className = "hotspotItem";
-      item.classList.toggle("is-selected", project.id === state.publicPageId);
+      item.classList.toggle("is-selected", row.id === state.publicPageId);
       item.innerHTML = '<span><strong></strong><span></span></span>';
-      item.querySelector("strong").textContent = project.title || "Untitled training page";
-      item.querySelector("span span").textContent = `${(project.hotspots || []).length} hotspot${(project.hotspots || []).length === 1 ? "" : "s"}`;
+      item.querySelector("strong").textContent = row.title || "Untitled training page";
+      item.querySelector("span span").textContent = `${count} hotspot${count === 1 ? "" : "s"}`;
       item.addEventListener("click", () => {
-        state.publicPageId = project.id;
+        state.publicPageId = row.id;
         renderPublicCatalog();
       });
       els.publicPageList.appendChild(item);
     });
 
-    showPublicPage(published.find((project) => project.id === state.publicPageId) || published[0]);
+    const current = published.find((row) => row.id === state.publicPageId) || published[0];
+    showPublicPage(rowToPublic(current));
   }
 
   function showPublicPage(project) {
@@ -1208,11 +1319,5 @@
 
   function isTyping(target) {
     return ["INPUT", "TEXTAREA", "SELECT"].includes(target && target.tagName);
-  }
-
-  async function sha256(value) {
-    const data = new TextEncoder().encode(value);
-    const digest = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
   }
 })();

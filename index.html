@@ -49,6 +49,7 @@
     <button id="saveNowBtn">Save</button>
     <button id="deleteProjectBtn" class="danger">Delete</button>
     <span class="autosave" id="saveStatus">Autosave ready</span>
+    <button id="signOutBtn" class="signout">Sign out</button>
   </div>
 
   <div class="editorMain">
@@ -150,19 +151,23 @@
 
 <div class="modalBackdrop hidden" id="editorModal">
   <div class="modalCard panel">
-    <h2>Editor access</h2>
+    <h2>Editor sign in</h2>
     <div class="body">
-      <label for="editorPassphrase">Passphrase</label>
-      <input id="editorPassphrase" type="password" autocomplete="current-password" placeholder="Enter editor passphrase">
+      <label for="editorEmail">Email</label>
+      <input id="editorEmail" type="email" autocomplete="username" placeholder="you@nhs.net">
+      <label for="editorPassword">Password</label>
+      <input id="editorPassword" type="password" autocomplete="current-password" placeholder="Your MyMedInfo password">
       <div class="row">
         <button id="editorCancelBtn">Cancel</button>
-        <button id="editorSubmitBtn" class="primary">Unlock</button>
+        <button id="editorSubmitBtn" class="primary">Sign in</button>
       </div>
-      <p class="small" id="editorModalText">If no passphrase has been set yet, this will create one for the current browser.</p>
+      <p class="small" id="editorModalText">Sign in with your MyMedInfo admin account to edit.</p>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="src/config.js"></script>
 <script src="src/app.js"></script>
 </body>
 </html>

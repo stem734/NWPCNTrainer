@@ -43,7 +43,7 @@
   function init() {
     [
       "projectTitle", "publishToggle", "newProjectBtn", "saveNowBtn", "projectList",
-      "deleteProjectBtn", "saveStatus", "imageInput", "importBtn", "exportProjectBtn", "jsonInput",
+      "deleteProjectBtn", "saveStatus", "imageInput", "imageInputBtn",
       "hotspotList", "drawBtn", "selectBtn", "panBtn", "fitBtn", "fitWidthBtn", "actualBtn", "modeText", "zoomText",
       "stageWrap", "stage", "selectedSelect", "hotTitle", "hotLabel", "hotGuidance", "hotMeta", "hotX",
       "hotY", "hotW", "hotH", "deleteBtn", "duplicateBtn", "metaToggleBtn", "metaSection",
@@ -84,9 +84,6 @@
     els.projectList.addEventListener("change", loadSelectedProject);
     els.deleteProjectBtn.addEventListener("click", deleteSelectedProject);
     els.imageInput.addEventListener("change", handleImageUpload);
-    els.importBtn.addEventListener("click", () => els.jsonInput.click());
-    els.jsonInput.addEventListener("change", handleJsonImport);
-    els.exportProjectBtn.addEventListener("click", exportProjectJson);
 
     els.drawBtn.addEventListener("click", () => setMode("draw"));
     els.selectBtn.addEventListener("click", () => setMode("select"));
@@ -104,6 +101,7 @@
       applyZoom();
     });
 
+    els.imageInputBtn.addEventListener("click", () => els.imageInput.click());
     els.stageWrap.addEventListener("pointerdown", onStagePointerDown);
     els.stageWrap.addEventListener("pointermove", onStagePointerMove);
     els.stageWrap.addEventListener("pointerup", endPointerAction);
@@ -864,58 +862,6 @@
       w: clamp(Number(hotspot.w) || 10, MIN_SIZE, 100),
       h: clamp(Number(hotspot.h) || 10, MIN_SIZE, 100)
     };
-  }
-
-  function exportProjectJson() {
-    const data = { ...getSerializableRow(), image_url: state.image, image_name: state.imageName };
-    downloadFile(`${slugify(state.title)}.project.json`, JSON.stringify(data, null, 2), "application/json");
-  }
-
-  async function handleJsonImport(event) {
-    const file = event.target.files && event.target.files[0];
-    event.target.value = "";
-    if (!file) return;
-    if (!state.isEditor) {
-      setStatus("Sign in to import a page");
-      return;
-    }
-    let parsed;
-    try {
-      parsed = JSON.parse(await file.text());
-    } catch (err) {
-      window.alert("That JSON file could not be imported.");
-      return;
-    }
-    const project = {
-      projectId: newId(),
-      title: parsed.title || "Imported training page",
-      imagePath: "",
-      image: "",
-      imageName: parsed.image_name || parsed.imageName || parsed.title || "",
-      imageWidth: Number(parsed.image_width || parsed.imageWidth) || 0,
-      imageHeight: Number(parsed.image_height || parsed.imageHeight) || 0,
-      published: false,
-      hotspots: Array.isArray(parsed.hotspots) ? parsed.hotspots.map(normalizeHotspot) : [],
-      selectedId: "",
-      zoom: "fit",
-      scale: 1,
-      createdAt: new Date().toISOString()
-    };
-    try {
-      if (parsed.image && /^data:/.test(parsed.image)) {
-        const blob = await (await fetch(parsed.image)).blob();
-        const imported = new File([blob], `${slugify(project.title) || "import"}.png`, { type: blob.type || "image/png" });
-        project.imagePath = await uploadImage(imported);
-        project.image = publicUrl(project.imagePath);
-      } else if (parsed.image_path) {
-        project.imagePath = parsed.image_path;
-        project.image = publicUrl(parsed.image_path);
-      }
-    } catch (err) {
-      setStatus("Imported, but image upload failed: " + (err.message || err));
-    }
-    loadProject(project);
-    await saveProject(true);
   }
 
   function buildTrainingHtml(source) {

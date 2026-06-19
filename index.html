@@ -65,6 +65,8 @@
       <button id="fitBtn">Fit</button>
       <button id="fitWidthBtn">Fit width</button>
       <button id="actualBtn">100%</button>
+      <button id="imageInputBtn">Screenshot</button>
+      <input id="imageInput" type="file" accept="image/*" hidden>
       <span class="small canvasStatus"><span id="modeText">Mode: add hotspot</span> &middot; <span id="zoomText">Zoom: fit</span></span>
     </div>
     <div class="stageWrap" id="stageWrap">
@@ -84,20 +86,6 @@
     <div class="body editorBody">
       <label for="projectTitle">Training title</label>
       <input id="projectTitle" type="text" value="Reception Visualisation Training">
-
-      <hr>
-
-      <label for="imageInput">Screenshot image</label>
-      <input id="imageInput" type="file" accept="image/*">
-      <p class="small">Use a clean screenshot with no patient-identifiable information before publishing.</p>
-
-      <hr>
-
-      <div class="row">
-        <button id="importBtn">Import project JSON</button>
-        <button id="exportProjectBtn">Export project JSON</button>
-      </div>
-      <input id="jsonInput" type="file" accept=".json,application/json" hidden>
 
       <hr>
 

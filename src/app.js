@@ -42,7 +42,7 @@
       "stageWrap", "stage", "selectedSelect", "hotTitle", "hotLabel", "hotGuidance", "hotMeta", "hotX",
       "hotY", "hotW", "hotH", "deleteBtn", "duplicateBtn",
       "topbarMeta", "userModeBtn", "editorModeBtn", "userShell",
-      "editorShell", "userRail", "publicPageList", "publicTitleText", "publicFrame", "canvasTip", "editorModal",
+      "editorShell", "userRail", "publicPageList", "publicFrame", "canvasTip", "editorModal",
       "editorPassphrase", "editorSubmitBtn", "editorCancelBtn", "editorModalText"
     ].forEach((id) => {
       els[id] = document.getElementById(id);
@@ -1154,11 +1154,9 @@
 
   function showPublicPage(project) {
     if (!project) {
-      els.publicTitleText.textContent = "No page selected";
       els.publicFrame.srcdoc = "<!doctype html><html><body style=\"margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#4c6272;background:#f4f8fc;display:grid;place-items:center;height:100vh;\"><p>Select a published training page from the list.</p></body></html>";
       return;
     }
-    els.publicTitleText.textContent = project.title || "Untitled training page";
     els.publicFrame.srcdoc = buildTrainingHtml(project);
   }
 

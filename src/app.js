@@ -44,9 +44,9 @@
     [
       "projectTitle", "publishToggle", "newProjectBtn", "saveNowBtn", "projectList",
       "deleteProjectBtn", "saveStatus", "imageInput", "importBtn", "exportProjectBtn", "jsonInput",
-      "hotspotList", "drawBtn", "selectBtn", "panBtn", "fitBtn", "actualBtn", "modeText", "zoomText",
+      "hotspotList", "drawBtn", "selectBtn", "panBtn", "fitBtn", "fitWidthBtn", "actualBtn", "modeText", "zoomText",
       "stageWrap", "stage", "selectedSelect", "hotTitle", "hotLabel", "hotGuidance", "hotMeta", "hotX",
-      "hotY", "hotW", "hotH", "deleteBtn", "duplicateBtn",
+      "hotY", "hotW", "hotH", "deleteBtn", "duplicateBtn", "metaToggleBtn", "metaSection",
       "topbarMeta", "userModeBtn", "editorModeBtn", "signOutBtn", "userShell",
       "editorShell", "userRail", "publicPageList", "publicFrame", "canvasTip", "editorModal",
       "editorEmail", "editorPassword", "editorSubmitBtn", "editorCancelBtn", "editorModalText"
@@ -95,6 +95,10 @@
       state.zoom = "fit";
       applyZoom();
     });
+    els.fitWidthBtn.addEventListener("click", () => {
+      state.zoom = "fit-width";
+      applyZoom();
+    });
     els.actualBtn.addEventListener("click", () => {
       state.zoom = "actual";
       applyZoom();
@@ -124,6 +128,11 @@
     });
 
     els.selectedSelect.addEventListener("change", () => selectHotspot(els.selectedSelect.value));
+    els.metaToggleBtn.addEventListener("click", () => {
+      els.metaSection.classList.toggle("hidden");
+      const isOpen = !els.metaSection.classList.contains("hidden");
+      els.metaToggleBtn.textContent = (isOpen ? "− " : "+ ") + "Optional metadata";
+    });
     ["hotTitle", "hotLabel", "hotGuidance", "hotMeta"].forEach((id) => {
       els[id].addEventListener("input", syncEditorText);
     });
@@ -668,11 +677,14 @@
   function applyZoom() {
     if (!state.image || !state.imageWidth || !state.imageHeight) return;
     const previousScale = state.scale;
+    const horizontalPadding = 24;
+    const verticalPadding = 24;
     if (state.zoom === "actual") {
       state.scale = 1;
+    } else if (state.zoom === "fit-width") {
+      const scaleX = (els.stageWrap.clientWidth - horizontalPadding) / state.imageWidth;
+      state.scale = Math.min(1, Math.max(0.08, scaleX));
     } else {
-      const horizontalPadding = 24;
-      const verticalPadding = 24;
       const scaleX = (els.stageWrap.clientWidth - horizontalPadding) / state.imageWidth;
       const scaleY = (els.stageWrap.clientHeight - verticalPadding) / state.imageHeight;
       state.scale = Math.min(1, Math.max(0.08, Math.min(scaleX, scaleY)));
@@ -684,13 +696,13 @@
     els.stage.style.marginRight = "12px";
     els.stage.style.marginBottom = "12px";
     els.zoomText.textContent = state.zoom === "actual" ? "Zoom: 100%" : `Zoom: ${Math.round(state.scale * 100)}%`;
-    if (state.zoom === "fit" || previousScale !== state.scale) {
+    if (state.zoom === "fit" || state.zoom === "fit-width" || previousScale !== state.scale) {
       positionStageForFit(false);
     }
   }
 
   function positionStageForFit() {
-    if (state.zoom !== "fit") return;
+    if (state.zoom !== "fit" && state.zoom !== "fit-width") return;
     els.stage.style.marginLeft = "12px";
     els.stage.style.marginTop = "12px";
   }

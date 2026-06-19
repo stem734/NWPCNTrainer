@@ -55,10 +55,11 @@
   <div class="editorMain">
     <main class="panel canvasPanel">
     <div class="toolbar canvasToolbar">
-      <button id="drawBtn" class="primary">Add hotspot</button>
+      <button id="drawBtn" class="primary" title="Drag boxes on the canvas to mark areas. Use Pan view, middle mouse, or hold Space to navigate.">Add hotspot</button>
       <button id="selectBtn">Select / move</button>
       <button id="panBtn">Pan view</button>
       <button id="fitBtn">Fit</button>
+      <button id="fitWidthBtn">Fit width</button>
       <button id="actualBtn">100%</button>
       <span class="small canvasStatus"><span id="modeText">Mode: add hotspot</span> &middot; <span id="zoomText">Zoom: fit</span></span>
     </div>
@@ -109,7 +110,6 @@
 
       <h3>Hotspots</h3>
       <div id="hotspotList" class="list"></div>
-      <p class="small">Use <span class="kbd">Add hotspot</span> then drag on the canvas. Use <span class="kbd">Pan view</span>, middle mouse, or hold <span class="kbd">Space</span> to drag around a large image.</p>
 
       <hr>
 
@@ -126,8 +126,11 @@
       <label for="hotGuidance">Guidance text</label>
       <textarea id="hotGuidance" placeholder="Explain what the section means and what reception should do..."></textarea>
 
-      <label for="hotMeta">Optional metadata</label>
-      <input id="hotMeta" type="text" placeholder="e.g. Relevant reports: 41023782–41023785">
+      <button id="metaToggleBtn" type="button" class="toggleSection">+ Optional metadata</button>
+      <div id="metaSection" class="hidden">
+        <label for="hotMeta">Metadata</label>
+        <input id="hotMeta" type="text" placeholder="e.g. Relevant reports: 41023782–41023785">
+      </div>
 
       <div class="coord">
         <div><label for="hotX">X %</label><input id="hotX" type="number" min="0" max="100" step="0.1"></div>

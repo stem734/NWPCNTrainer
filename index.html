@@ -83,11 +83,20 @@
   </main>
 
   <aside class="panel editorPanel">
-    <h2>Hotspot Editor</h2>
-    <div class="body editorBody">
-      <div id="hotspotList" class="list"></div>
+    <div class="panelTabs">
+      <button id="listTabBtn" class="panelTab">List</button>
+      <button id="editorTabBtn" class="panelTab active">Editor</button>
+    </div>
 
-      <hr>
+    <div id="listView" class="panelView hidden">
+      <div class="body">
+        <div id="hotspotListPanel" class="list"></div>
+      </div>
+    </div>
+
+    <div id="editorView" class="panelView">
+      <h2>Hotspot Editor</h2>
+      <div class="body editorBody">
       <label for="selectedSelect">Selected hotspot</label>
       <select id="selectedSelect"></select>
 
@@ -128,6 +137,7 @@
       </div>
 
       <p class="small top-gap">Toggle <b>Published</b> above to make this page available to staff in the User view.</p>
+      </div>
     </div>
   </aside>
   </div>

@@ -44,12 +44,13 @@
     [
       "projectTitle", "publishToggle", "newProjectBtn", "saveNowBtn", "projectList",
       "deleteProjectBtn", "saveStatus", "imageInput", "imageInputBtn",
-      "hotspotList", "drawBtn", "selectBtn", "panBtn", "fitBtn", "fitWidthBtn", "actualBtn", "modeText", "zoomText",
+      "hotspotListPanel", "drawBtn", "selectBtn", "panBtn", "fitBtn", "fitWidthBtn", "actualBtn", "modeText", "zoomText",
       "stageWrap", "stage", "selectedSelect", "hotTitle", "hotLabel", "hotGuidance", "hotMeta", "hotColor", "hotX",
       "hotY", "hotW", "hotH", "deleteBtn", "duplicateBtn", "metaToggleBtn", "metaSection",
       "topbarMeta", "userModeBtn", "editorModeBtn", "signOutBtn", "userShell",
       "editorShell", "userRail", "publicPageList", "publicFrame", "canvasTip", "editorModal",
-      "editorEmail", "editorPassword", "editorSubmitBtn", "editorCancelBtn", "editorModalText"
+      "editorEmail", "editorPassword", "editorSubmitBtn", "editorCancelBtn", "editorModalText",
+      "listTabBtn", "editorTabBtn", "listView", "editorView"
     ].forEach((id) => {
       els[id] = document.getElementById(id);
     });
@@ -139,6 +140,8 @@
     });
     els.deleteBtn.addEventListener("click", deleteSelectedHotspot);
     els.duplicateBtn.addEventListener("click", duplicateSelectedHotspot);
+    els.listTabBtn.addEventListener("click", () => switchPanelTab("list"));
+    els.editorTabBtn.addEventListener("click", () => switchPanelTab("editor"));
     els.userModeBtn.addEventListener("click", () => setViewMode("user"));
     els.editorModeBtn.addEventListener("click", requestEditorMode);
     els.signOutBtn.addEventListener("click", signOutEditor);
@@ -550,15 +553,29 @@
     els.canvasTip.style.top = `${Math.max(pad, top)}px`;
   }
 
+  function switchPanelTab(tab) {
+    if (tab === "list") {
+      els.listView.classList.remove("hidden");
+      els.editorView.classList.add("hidden");
+      els.listTabBtn.classList.add("active");
+      els.editorTabBtn.classList.remove("active");
+    } else {
+      els.editorView.classList.remove("hidden");
+      els.listView.classList.add("hidden");
+      els.editorTabBtn.classList.add("active");
+      els.listTabBtn.classList.remove("active");
+    }
+  }
+
   function renderLists() {
-    els.hotspotList.innerHTML = "";
+    els.hotspotListPanel.innerHTML = "";
     els.selectedSelect.innerHTML = "";
 
     if (!state.hotspots.length) {
       const empty = document.createElement("p");
       empty.className = "emptyState";
       empty.textContent = "No hotspots yet.";
-      els.hotspotList.appendChild(empty);
+      els.hotspotListPanel.appendChild(empty);
     }
 
     const defaultOption = document.createElement("option");
@@ -576,9 +593,10 @@
       item.querySelector("span span").textContent = hotspot.label || "No short label";
       item.addEventListener("click", () => {
         selectHotspot(hotspot.id);
+        switchPanelTab("editor");
         setMode("select");
       });
-      els.hotspotList.appendChild(item);
+      els.hotspotListPanel.appendChild(item);
 
       const option = document.createElement("option");
       option.value = hotspot.id;

@@ -840,3 +840,44 @@ button.toggleSection:hover {
 .projectBar .titleInput::placeholder {
   color: var(--muted);
 }
+
+.panelTabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  background: var(--page);
+  gap: 0;
+}
+
+.panelTab {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.panelTab:hover {
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.panelTab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.panelView {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.panelView.hidden {
+  display: none;
+}

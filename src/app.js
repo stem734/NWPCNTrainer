@@ -45,7 +45,7 @@
       "projectTitle", "publishToggle", "newProjectBtn", "saveNowBtn", "projectList",
       "deleteProjectBtn", "saveStatus", "imageInput", "imageInputBtn",
       "hotspotList", "drawBtn", "selectBtn", "panBtn", "fitBtn", "fitWidthBtn", "actualBtn", "modeText", "zoomText",
-      "stageWrap", "stage", "selectedSelect", "hotTitle", "hotLabel", "hotGuidance", "hotMeta", "hotX",
+      "stageWrap", "stage", "selectedSelect", "hotTitle", "hotLabel", "hotGuidance", "hotMeta", "hotColor", "hotX",
       "hotY", "hotW", "hotH", "deleteBtn", "duplicateBtn", "metaToggleBtn", "metaSection",
       "topbarMeta", "userModeBtn", "editorModeBtn", "signOutBtn", "userShell",
       "editorShell", "userRail", "publicPageList", "publicFrame", "canvasTip", "editorModal",
@@ -131,7 +131,7 @@
       const isOpen = !els.metaSection.classList.contains("hidden");
       els.metaToggleBtn.textContent = (isOpen ? "− " : "+ ") + "Optional metadata";
     });
-    ["hotTitle", "hotLabel", "hotGuidance", "hotMeta"].forEach((id) => {
+    ["hotTitle", "hotLabel", "hotGuidance", "hotMeta", "hotColor"].forEach((id) => {
       els[id].addEventListener("input", syncEditorText);
     });
     ["hotX", "hotY", "hotW", "hotH"].forEach((id) => {
@@ -445,6 +445,10 @@
       box.style.top = `${hotspot.y}%`;
       box.style.width = `${hotspot.w}%`;
       box.style.height = `${hotspot.h}%`;
+      const color = hexToRgb(hotspot.color || "#ffc857");
+      box.style.borderColor = `rgba(17, 24, 39, 0.4)`;
+      const isSelected = hotspot.id === state.selectedId;
+      box.style.backgroundColor = `rgba(${color.r}, ${color.g}, ${color.b}, ${isSelected ? 0.25 : 0.08})`;
       box.setAttribute("role", "button");
       box.setAttribute("tabindex", "0");
       box.setAttribute("aria-label", hotspot.title || hotspot.label || "Hotspot");
@@ -468,11 +472,27 @@
       });
 
       // WYSIWYG guidance preview: hover shows the same tooltip users will see.
-      box.addEventListener("mouseenter", (event) => showCanvasTip(hotspot, event));
+      box.addEventListener("mouseenter", (event) => {
+        box.style.backgroundColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0.25)`;
+        showCanvasTip(hotspot, event);
+      });
       box.addEventListener("mousemove", moveCanvasTip);
-      box.addEventListener("mouseleave", hideCanvasTip);
-      box.addEventListener("focus", (event) => showCanvasTip(hotspot, event));
-      box.addEventListener("blur", hideCanvasTip);
+      box.addEventListener("mouseleave", (event) => {
+        if (!box.classList.contains("selected")) {
+          box.style.backgroundColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0.08)`;
+        }
+        hideCanvasTip(event);
+      });
+      box.addEventListener("focus", (event) => {
+        box.style.backgroundColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0.25)`;
+        showCanvasTip(hotspot, event);
+      });
+      box.addEventListener("blur", (event) => {
+        if (!box.classList.contains("selected")) {
+          box.style.backgroundColor = `rgba(${color.r}, ${color.g}, ${color.b}, 0.08)`;
+        }
+        hideCanvasTip(event);
+      });
 
       els.stage.appendChild(box);
     });
@@ -572,7 +592,7 @@
     const hotspot = getHotspot(state.selectedId);
     const disabled = !hotspot;
 
-    ["hotTitle", "hotLabel", "hotGuidance", "hotMeta", "hotX", "hotY", "hotW", "hotH"].forEach((id) => {
+    ["hotTitle", "hotLabel", "hotGuidance", "hotMeta", "hotColor", "hotX", "hotY", "hotW", "hotH"].forEach((id) => {
       els[id].disabled = disabled;
     });
 
@@ -581,6 +601,7 @@
       els.hotLabel.value = "";
       els.hotGuidance.value = "";
       els.hotMeta.value = "";
+      els.hotColor.value = "#ffc857";
       els.hotX.value = "";
       els.hotY.value = "";
       els.hotW.value = "";
@@ -594,6 +615,7 @@
     els.hotLabel.value = hotspot.label || "";
     els.hotGuidance.value = hotspot.guidance || "";
     els.hotMeta.value = hotspot.meta || "";
+    els.hotColor.value = hotspot.color || "#ffc857";
     els.hotX.value = round(hotspot.x);
     els.hotY.value = round(hotspot.y);
     els.hotW.value = round(hotspot.w);
@@ -609,6 +631,7 @@
     hotspot.label = els.hotLabel.value;
     hotspot.guidance = els.hotGuidance.value;
     hotspot.meta = els.hotMeta.value;
+    hotspot.color = els.hotColor.value;
     renderHotspotBoxes();
     renderLists();
     markDirty();
@@ -1273,6 +1296,15 @@
       hour: "2-digit",
       minute: "2-digit"
     });
+  }
+
+  function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 255, g: 200, b: 87 };
   }
 
   function isTyping(target) {

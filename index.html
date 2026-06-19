@@ -45,6 +45,7 @@
   <div class="projectBar">
     <label for="projectList">Page</label>
     <select id="projectList"></select>
+    <input id="projectTitle" type="text" placeholder="Training title" class="titleInput">
     <button id="newProjectBtn" class="primary">New</button>
     <button id="saveNowBtn">Save</button>
     <label class="publishToggleBar" for="publishToggle">
@@ -82,25 +83,11 @@
   </main>
 
   <aside class="panel editorPanel">
-    <h2>Editor</h2>
+    <h2>Hotspot Editor</h2>
     <div class="body editorBody">
-      <label for="projectTitle">Training title</label>
-      <input id="projectTitle" type="text" value="Reception Visualisation Training">
-
-      <hr>
-
-      <div class="notice">
-        Draw larger hotspots for recognisable sections rather than every individual tile: <b>Alerts</b>, <b>Patient Status</b>, <b>Recalls bloods/tests</b>, specific disease cards, and <b>Quick Actions</b>.
-      </div>
-
-      <hr>
-
-      <h3>Hotspots</h3>
       <div id="hotspotList" class="list"></div>
 
       <hr>
-
-      <h3>Guidance editor</h3>
       <label for="selectedSelect">Selected hotspot</label>
       <select id="selectedSelect"></select>
 
@@ -112,6 +99,9 @@
 
       <label for="hotGuidance">Guidance text</label>
       <textarea id="hotGuidance" placeholder="Explain what the section means and what reception should do..."></textarea>
+
+      <label for="hotColor">Colour</label>
+      <input id="hotColor" type="color" value="#ffc857">
 
       <button id="metaToggleBtn" type="button" class="toggleSection">+ Optional metadata</button>
       <div id="metaSection" class="hidden">

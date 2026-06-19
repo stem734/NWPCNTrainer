@@ -876,6 +876,22 @@ button.toggleSection:hover {
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
+  background: var(--panel);
+  color: var(--ink);
+}
+
+.panelView > .body {
+  padding: 14px;
+  color: var(--ink);
+}
+
+.panelView h2 {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--line);
+  background: #f8fbfd;
+  color: var(--primary-dark);
+  padding: 12px 14px;
+  margin: 0;
 }
 
 .panelView.hidden {

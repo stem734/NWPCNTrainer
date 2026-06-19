@@ -33,7 +33,9 @@
     dirty: false,
     isEditor: false,
     viewMode: "user",
-    publicPageId: ""
+    publicPageId: "",
+    hasLock: false,
+    lockRefreshTimer: 0
   };
 
   const els = {};
@@ -61,6 +63,13 @@
     setStatus(SB ? "Ready" : "Backend not configured");
     applyViewMode();
     renderPublicCatalog();
+
+    // Release lock when user leaves
+    window.addEventListener("beforeunload", async () => {
+      if (state.hasLock) {
+        await releaseLock(state.projectId);
+      }
+    });
   }
 
   function newId() {
@@ -799,6 +808,12 @@
   async function loadSelectedProject() {
     const id = els.projectList.value;
     if (!id || id === state.projectId) return;
+
+    // Release old lock if we have one
+    if (state.hasLock) {
+      await releaseLock(state.projectId);
+    }
+
     let row = null;
     try {
       row = await getRow(id);
@@ -811,6 +826,12 @@
       return;
     }
     loadProject(rowToProject(row));
+
+    // Acquire lock for new page
+    if (state.isEditor) {
+      await acquireLock(id);
+    }
+
     setStatus("Page loaded");
   }
 
@@ -1108,6 +1129,44 @@
     return data === true;
   }
 
+  async function acquireLock(pageId) {
+    if (!SB || !pageId) return false;
+    const { data, error } = await SB.rpc("acquire_training_lock", { page_id: pageId });
+    if (error) {
+      setStatus("Error acquiring lock: " + (error.message || error));
+      return false;
+    }
+    if (!data[0].success) {
+      const lockedBy = data[0].locked_by_user_id;
+      const lockedAt = data[0].locked_at_time;
+      setStatus(`Page locked by another user (locked at ${new Date(lockedAt).toLocaleTimeString()})`);
+      return false;
+    }
+    state.hasLock = true;
+    startLockHeartbeat();
+    setStatus("Lock acquired");
+    return true;
+  }
+
+  async function releaseLock(pageId) {
+    if (!SB || !pageId || !state.hasLock) return;
+    window.clearTimeout(state.lockRefreshTimer);
+    state.hasLock = false;
+    const { error } = await SB.rpc("release_training_lock", { page_id: pageId });
+    if (error) {
+      console.warn("Error releasing lock:", error);
+    }
+  }
+
+  function startLockHeartbeat() {
+    window.clearTimeout(state.lockRefreshTimer);
+    state.lockRefreshTimer = window.setInterval(() => {
+      if (state.hasLock && state.projectId) {
+        acquireLock(state.projectId).catch(err => console.warn("Lock refresh failed:", err));
+      }
+    }, 5 * 60 * 1000); // Refresh every 5 minutes
+  }
+
   function downloadFile(filename, content, type) {
     const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
@@ -1168,6 +1227,13 @@
     setViewMode("editor");
     setStatus("Ready");
     await refreshProjects(state.projectId);
+    if (state.projectId) {
+      const locked = await acquireLock(state.projectId);
+      if (!locked) {
+        setViewMode("user");
+        return;
+      }
+    }
   }
 
   function openEditorModal() {
@@ -1209,6 +1275,7 @@
   }
 
   async function signOutEditor() {
+    await releaseLock(state.projectId);
     if (SB) await SB.auth.signOut();
     state.isEditor = false;
     setViewMode("user");

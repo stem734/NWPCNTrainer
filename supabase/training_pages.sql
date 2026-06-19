@@ -20,6 +20,89 @@ $$;
 grant execute on function public.is_training_editor() to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
+-- Edit locks (prevent simultaneous editing)
+-- ---------------------------------------------------------------------------
+create or replace function public.acquire_training_lock(page_id uuid)
+returns table (success boolean, locked_by_user_id uuid, locked_at_time timestamptz, message text)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_user_id uuid;
+  existing_lock_user uuid;
+  existing_lock_time timestamptz;
+begin
+  current_user_id := auth.uid();
+  if current_user_id is null then
+    return query select false, null::uuid, null::timestamptz, 'Not authenticated'::text;
+    return;
+  end if;
+
+  if not public.is_training_editor() then
+    return query select false, null::uuid, null::timestamptz, 'Not authorized'::text;
+    return;
+  end if;
+
+  select locked_by, locked_at into existing_lock_user, existing_lock_time
+  from public.training_pages where id = page_id;
+
+  -- If locked by this user, renew the lock
+  if existing_lock_user = current_user_id then
+    update public.training_pages
+    set locked_at = now()
+    where id = page_id;
+    return query select true, current_user_id, now(), 'Lock renewed'::text;
+    return;
+  end if;
+
+  -- If locked by another user and not stale (30 mins), reject
+  if existing_lock_user is not null and existing_lock_time > now() - interval '30 minutes' then
+    return query select false, existing_lock_user, existing_lock_time, 'Page locked by another user'::text;
+    return;
+  end if;
+
+  -- Acquire or steal stale lock
+  update public.training_pages
+  set locked_by = current_user_id, locked_at = now()
+  where id = page_id;
+
+  return query select true, current_user_id, now(), 'Lock acquired'::text;
+end;
+$$;
+
+grant execute on function public.acquire_training_lock(uuid) to authenticated;
+
+create or replace function public.release_training_lock(page_id uuid)
+returns table (success boolean, message text)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_user_id uuid;
+begin
+  current_user_id := auth.uid();
+  if current_user_id is null then
+    return query select false, 'Not authenticated'::text;
+    return;
+  end if;
+
+  update public.training_pages
+  set locked_by = null, locked_at = null
+  where id = page_id and locked_by = current_user_id;
+
+  if found then
+    return query select true, 'Lock released'::text;
+  else
+    return query select false, 'You do not hold this lock'::text;
+  end if;
+end;
+$$;
+
+grant execute on function public.release_training_lock(uuid) to authenticated;
+
+-- ---------------------------------------------------------------------------
 -- Table
 -- ---------------------------------------------------------------------------
 create table if not exists public.training_pages (
@@ -32,7 +115,9 @@ create table if not exists public.training_pages (
   hotspots     jsonb not null default '[]'::jsonb,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
-  updated_by   uuid references auth.users(id)
+  updated_by   uuid references auth.users(id),
+  locked_by    uuid references auth.users(id),
+  locked_at    timestamptz
 );
 
 create index if not exists training_pages_published_idx

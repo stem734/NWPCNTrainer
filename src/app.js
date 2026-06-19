@@ -1262,11 +1262,10 @@
     setStatus("Ready");
     await refreshProjects(state.projectId);
     if (state.projectId) {
-      const locked = await acquireLock(state.projectId);
-      if (!locked) {
-        setViewMode("user");
-        return;
-      }
+      // Try to acquire lock, but continue even if it fails (lock system might not be set up)
+      acquireLock(state.projectId).catch(err => {
+        console.warn("Lock acquisition failed (may not be configured):", err);
+      });
     }
   }
 

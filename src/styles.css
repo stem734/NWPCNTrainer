@@ -104,6 +104,11 @@ header h1 {
   gap: 12px;
 }
 
+.topbarActions > button {
+  min-height: 34px;
+  padding: 6px 12px;
+}
+
 .viewSwitch {
   display: inline-flex;
   border: 1px solid var(--line);
@@ -141,6 +146,14 @@ header h1 {
   min-height: 0;
   overflow: hidden;
   padding: 16px;
+}
+
+.userShell.rail-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+
+.userShell.rail-collapsed .userRail {
+  display: none;
 }
 
 .userShell[hidden],
@@ -755,6 +768,10 @@ hr {
 
   .viewerPanel {
     min-height: 70vh;
+  }
+
+  .userShell.rail-collapsed {
+    grid-template-columns: 1fr;
   }
 }
 

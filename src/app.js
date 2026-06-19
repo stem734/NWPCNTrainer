@@ -5,6 +5,7 @@
   const TABLE = CONFIG.table || "training_pages";
   const BUCKET = CONFIG.bucket || "training-images";
   const MIN_SIZE = 1.2;
+  const RAIL_KEY = "training-portal-user-rail-collapsed";
 
   // Supabase client (loaded via CDN as window.supabase). Shared MyMedInfo project.
   const SB = (window.supabase && CONFIG.supabaseUrl)
@@ -52,7 +53,7 @@
       "topbarMeta", "userModeBtn", "editorModeBtn", "signOutBtn", "userShell",
       "editorShell", "userRail", "publicPageList", "publicFrame", "canvasTip", "editorModal",
       "editorEmail", "editorPassword", "editorSubmitBtn", "editorCancelBtn", "editorModalText",
-      "listTabBtn", "editorTabBtn", "listView", "editorView"
+      "listTabBtn", "editorTabBtn", "listView", "editorView", "collapseRailBtn"
     ].forEach((id) => {
       els[id] = document.getElementById(id);
     });
@@ -62,6 +63,7 @@
     render();
     setStatus(SB ? "Ready" : "Backend not configured");
     applyViewMode();
+    applyRailCollapse();
     renderPublicCatalog();
 
     // Release lock when user leaves
@@ -154,6 +156,7 @@
     els.userModeBtn.addEventListener("click", () => setViewMode("user"));
     els.editorModeBtn.addEventListener("click", requestEditorMode);
     els.signOutBtn.addEventListener("click", signOutEditor);
+    els.collapseRailBtn.addEventListener("click", toggleRailCollapse);
     els.editorCancelBtn.addEventListener("click", closeEditorModal);
     els.editorSubmitBtn.addEventListener("click", submitEditorLogin);
     els.editorPassword.addEventListener("keydown", (event) => {
@@ -1033,7 +1036,6 @@
       clearTimeout(hotspot.timer);
       hotspot.timer = setTimeout(() => {
         markVisited(hotspot, spot);
-        showTip(hotspot, event);
       }, 2000);
     }
     function clearVisitTimer(hotspot) {
@@ -1069,6 +1071,7 @@
       spot.appendChild(label);
       spot.addEventListener("mouseenter", (event) => {
         spot.classList.add("active");
+        showTip(hotspot, event);
         startVisitTimer(hotspot, spot, event);
       });
       spot.addEventListener("mousemove", moveTip);
@@ -1079,6 +1082,7 @@
       });
       spot.addEventListener("focus", (event) => {
         spot.classList.add("active");
+        showTip(hotspot, event);
         startVisitTimer(hotspot, spot, event);
       });
       spot.addEventListener("blur", () => {
@@ -1092,6 +1096,7 @@
       });
       spot.addEventListener("touchstart", (event) => {
         spot.classList.add("active");
+        showTip(hotspot, event.touches[0]);
         startVisitTimer(hotspot, spot, event.touches[0]);
       });
       screen.appendChild(spot);
@@ -1270,7 +1275,24 @@
     els.userShell.hidden = editor;
     els.userModeBtn.classList.toggle("active", !editor);
     els.editorModeBtn.classList.toggle("active", editor);
+    els.collapseRailBtn.hidden = editor;
     updateTopbarMeta();
+  }
+
+  function applyRailCollapse() {
+    const collapsed = localStorage.getItem(RAIL_KEY) === "1";
+    els.userShell.classList.toggle("rail-collapsed", collapsed);
+    els.collapseRailBtn.textContent = collapsed ? "Expand rail" : "Collapse rail";
+  }
+
+  function toggleRailCollapse() {
+    const collapsed = localStorage.getItem(RAIL_KEY) === "1";
+    if (collapsed) {
+      localStorage.removeItem(RAIL_KEY);
+    } else {
+      localStorage.setItem(RAIL_KEY, "1");
+    }
+    applyRailCollapse();
   }
 
   async function requestEditorMode() {

@@ -1,18 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 :root {
   color-scheme: light;
-  --ink: #17202a;
-  --muted: #5c6672;
-  --line: #d8dee8;
+  /* Nottingham West PCN / MyMedInfo brand palette */
+  --ink: #212b32;
+  --muted: #4c6272;
+  --line: #d8dde0;
   --panel: #ffffff;
-  --page: #f4f6f8;
-  --primary: #1458d4;
-  --primary-dark: #0f43a2;
-  --danger: #b42318;
-  --good: #157347;
+  --page: #f4f8fc;
+  --primary: #005eb8;
+  --primary-dark: #003a73;
+  --primary-tint: #eef7ff;
+  --primary-soft: #d6e8f7;
+  --danger: #d5281b;
+  --good: #007f3b;
   --warn: #8a5b00;
+  --focus: #ffeb3b;
+  --pcn-blue-deep: #0a2d5e;
+  --pcn-green: #6dbe45;
+  --header-bg: #d8efff;
+  --header-ink: #003d78;
+  --header-line: #7fb9e6;
   --hotspot: #ffc857;
   --hotspot-border: #111827;
-  --shadow: 0 8px 24px rgba(17, 24, 39, 0.08);
+  --shadow: 0 10px 30px rgba(16, 32, 51, 0.07);
 }
 
 * {
@@ -32,19 +43,37 @@ body {
   overflow: hidden;
   background: var(--page);
   color: var(--ink);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
 .topbar {
   display: flex;
   flex: 0 0 auto;
   justify-content: space-between;
+  align-items: center;
   gap: 16px;
-  border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+  border-bottom: 1px solid var(--header-line);
+  background: var(--header-bg);
+  color: var(--header-ink);
   padding: 12px 22px;
+}
+
+.topbar h1 {
+  color: var(--pcn-blue-deep);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.topbar h1 span {
+  color: var(--pcn-green);
+}
+
+.topbar p {
+  color: var(--header-ink);
+  opacity: 0.85;
 }
 
 header h1,
@@ -209,9 +238,11 @@ header h1 {
 .panel > h2 {
   flex: 0 0 auto;
   border-bottom: 1px solid var(--line);
-  background: #f9fafb;
+  background: #f8fbfd;
+  color: var(--primary-dark);
   padding: 12px 14px;
   font-size: 1rem;
+  font-weight: 700;
 }
 
 .body {
@@ -243,23 +274,32 @@ button {
 
 input[type="text"],
 input[type="number"],
+input[type="password"],
 select,
 textarea {
   width: 100%;
   min-width: 0;
-  border: 1px solid #c8d0dc;
-  border-radius: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   background: #fff;
   color: var(--ink);
   padding: 9px 10px;
 }
 
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--primary);
+}
+
 input[type="file"] {
   width: 100%;
-  border: 1px dashed #b8c2d2;
-  border-radius: 6px;
+  border: 1px dashed var(--header-line);
+  border-radius: 8px;
   padding: 10px;
-  background: #fbfcfe;
+  background: var(--primary-tint);
 }
 
 textarea {
@@ -272,27 +312,27 @@ button {
   align-items: center;
   justify-content: center;
   min-height: 36px;
-  border: 1px solid #b8c2d2;
-  border-radius: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   background: #fff;
-  color: #17202a;
-  padding: 8px 11px;
-  font-weight: 700;
+  color: var(--ink);
+  padding: 8px 12px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease;
 }
 
 button:hover {
-  border-color: #8390a3;
-  background: #f6f8fb;
+  border-color: var(--primary);
+  background: var(--primary-tint);
 }
 
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(20, 88, 212, 0.24);
-  outline-offset: 1px;
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
 button.primary,
@@ -306,27 +346,31 @@ button.active {
 button.primary,
 button.active {
   background: var(--primary);
+  border-color: var(--primary);
 }
 
 button.primary:hover,
 button.active:hover {
   background: var(--primary-dark);
+  border-color: var(--primary-dark);
 }
 
 button.good {
   background: var(--good);
+  border-color: var(--good);
 }
 
 button.good:hover {
-  background: #0f5a36;
+  opacity: 0.9;
 }
 
 button.danger {
   background: var(--danger);
+  border-color: var(--danger);
 }
 
 button.danger:hover {
-  background: #8f1d14;
+  opacity: 0.9;
 }
 
 button:disabled {
@@ -365,11 +409,11 @@ hr {
 }
 
 .notice {
-  border-left: 4px solid var(--warn);
-  border-radius: 6px;
-  background: #fff8e6;
-  padding: 10px 12px;
-  color: #4d3605;
+  border-left: 4px solid var(--primary);
+  border-radius: 8px;
+  background: var(--primary-tint);
+  padding: 12px 14px;
+  color: var(--ink);
 }
 
 .kbd {
@@ -396,16 +440,22 @@ hr {
   grid-template-columns: 1fr auto;
   gap: 8px;
   width: 100%;
-  border: 1px solid #dce2ec;
-  border-radius: 6px;
-  background: #fbfcfe;
-  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 11px;
   text-align: left;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.hotspotItem:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
 }
 
 .hotspotItem.is-selected {
   border-color: var(--primary);
-  background: #edf4ff;
+  background: var(--primary-tint);
 }
 
 .hotspotItem strong {
@@ -515,11 +565,12 @@ hr {
   z-index: 25;
   display: none;
   width: min(360px, calc(100vw - 24px));
-  border: 1px solid #c8d0dc;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--primary);
   border-radius: 8px;
   background: #fff;
-  padding: 14px;
-  box-shadow: 0 18px 42px rgba(17, 24, 39, 0.18);
+  padding: 16px;
+  box-shadow: 0 16px 36px rgba(16, 32, 51, 0.18);
   pointer-events: none;
 }
 

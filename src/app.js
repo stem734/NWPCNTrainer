@@ -849,25 +849,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${safeTitle}</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     * { box-sizing: border-box; }
-    body { margin: 0; background: #edf1f5; color: #17202a; font-family: Arial, Helvetica, sans-serif; line-height: 1.45; }
-    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 20px; background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%); border-bottom: 1px solid #d8dee8; }
-    .topbar h1 { margin: 0; font-size: 1.2rem; }
-    .topbar p { margin: 2px 0 0; color: #5c6672; font-size: 0.88rem; }
-    .main { padding: 18px; }
+    body { margin: 0; background: #f4f8fc; color: #212b32; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 22px; background: #d8efff; color: #003d78; border-bottom: 1px solid #7fb9e6; }
+    .topbar h1 { margin: 0; font-size: 1.2rem; font-weight: 800; letter-spacing: -0.01em; color: #0a2d5e; }
+    .topbar p { margin: 3px 0 0; color: #003d78; opacity: 0.85; font-size: 0.88rem; }
+    .topbar .count { display: inline-flex; align-items: center; padding: 0.3rem 0.7rem; border-radius: 999px; background: #005eb8; color: #fff; font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
+    .main { padding: 24px; }
     .contentShell { max-width: 1600px; margin: 0 auto; }
-    .screen { position: relative; width: 100%; background: #fff; border: 1px solid #d8dee8; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(17, 24, 39, 0.08); }
+    .screen { position: relative; width: 100%; background: #fff; border: 1px solid #d8dde0; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(16, 32, 51, 0.07); }
     .screen img { display: block; width: 100%; height: auto; }
-    .spot { position: absolute; border: 2px dashed rgba(20, 88, 212, 0.35); border-radius: 3px; background: rgba(255, 200, 87, 0.12); cursor: help; transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease; }
-    .spot:hover, .spot:focus, .spot.active { border-style: solid; border-color: #111827; background: rgba(255, 200, 87, 0.3); outline: 0; box-shadow: 0 0 0 2px rgba(255,255,255,.92), 0 10px 30px rgba(0,0,0,.16); }
-    .spot span { position: absolute; left: -2px; top: -30px; display: none; max-width: min(300px, 82vw); overflow: hidden; border-radius: 5px; background: #111827; color: #fff; padding: 4px 8px; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
+    .spot { position: absolute; border: 2px dashed rgba(0, 94, 184, 0.45); border-radius: 4px; background: rgba(0, 94, 184, 0.08); cursor: help; transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease; }
+    .spot:hover, .spot:focus, .spot.active { border-style: solid; border-color: #005eb8; background: rgba(0, 94, 184, 0.16); outline: 0; box-shadow: 0 0 0 2px rgba(255,255,255,.92), 0 10px 30px rgba(0, 94, 184, .22); }
+    .spot span { position: absolute; left: -2px; top: -30px; display: none; max-width: min(300px, 82vw); overflow: hidden; border-radius: 5px; background: #005eb8; color: #fff; padding: 4px 8px; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
     .spot:hover span, .spot:focus span, .spot.active span { display: block; }
-    .tip { position: fixed; z-index: 10; display: none; width: min(360px, calc(100vw - 24px)); border: 1px solid #c8d0dc; border-radius: 8px; background: #fff; padding: 14px; box-shadow: 0 18px 42px rgba(17,24,39,.18); }
+    .tip { position: fixed; z-index: 10; display: none; width: min(360px, calc(100vw - 24px)); border: 1px solid #d8dde0; border-left: 4px solid #005eb8; border-radius: 8px; background: #fff; padding: 16px; box-shadow: 0 16px 36px rgba(16, 32, 51, 0.18); }
     .tip.show { display: block; }
-    .tip h2 { margin: 0 0 8px; font-size: 1rem; }
-    .tip p { margin: 0; color: #2d3748; white-space: pre-wrap; }
-    .tip .meta { margin-top: 10px; color: #5c6672; font-size: .85rem; }
-    .empty { padding: 40px 18px; color: #5c6672; text-align: center; }
+    .tip h2 { margin: 0 0 8px; font-size: 1.05rem; font-weight: 700; color: #212b32; }
+    .tip p { margin: 0; color: #334e68; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5; }
+    .tip .meta { margin-top: 10px; padding-top: 10px; border-top: 1px solid #d8dde0; color: #4c6272; font-size: .85rem; }
+    .empty { padding: 48px 18px; color: #4c6272; text-align: center; }
   </style>
 </head>
 <body>
@@ -876,7 +878,7 @@
       <h1>${safeTitle}</h1>
       <p>Hover or tap a highlighted area for guidance.</p>
     </div>
-    <div>${hotspots.length} hotspot${hotspots.length === 1 ? "" : "s"}</div>
+    <span class="count">${hotspots.length} hotspot${hotspots.length === 1 ? "" : "s"}</span>
   </header>
   <main class="main">
     <div class="contentShell">
@@ -1153,7 +1155,7 @@
   function showPublicPage(project) {
     if (!project) {
       els.publicTitleText.textContent = "No page selected";
-      els.publicFrame.srcdoc = "<!doctype html><html><body style=\"margin:0;font-family:Arial,Helvetica,sans-serif;color:#5c6672;display:grid;place-items:center;height:100vh;\"><p>Select a published training page from the list.</p></body></html>";
+      els.publicFrame.srcdoc = "<!doctype html><html><body style=\"margin:0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#4c6272;background:#f4f8fc;display:grid;place-items:center;height:100vh;\"><p>Select a published training page from the list.</p></body></html>";
       return;
     }
     els.publicTitleText.textContent = project.title || "Untitled training page";

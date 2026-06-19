@@ -140,20 +140,12 @@ header h1 {
 
 .userShell {
   display: grid;
-  grid-template-columns: minmax(240px, 320px) minmax(520px, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   gap: 16px;
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
   padding: 16px;
-}
-
-.userShell.rail-collapsed {
-  grid-template-columns: 0 minmax(0, 1fr);
-}
-
-.userShell.rail-collapsed .userRail {
-  display: none;
 }
 
 .userShell[hidden],
@@ -768,10 +760,6 @@ hr {
 
   .viewerPanel {
     min-height: 70vh;
-  }
-
-  .userShell.rail-collapsed {
-    grid-template-columns: 1fr;
   }
 }
 

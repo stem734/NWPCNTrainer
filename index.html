@@ -9,8 +9,8 @@
 <body class="mode-user">
 <header class="topbar">
   <div>
-    <h1>S1 Hotspot <span>Training</span></h1>
-    <p>Interactive SystmOne guidance for the reception team.</p>
+    <h1>Nottingham West PCN <span>Training Portal</span></h1>
+    <p>Interactive SystmOne guidance</p>
   </div>
   <div class="topbarActions">
     <span class="topbarMeta" id="topbarMeta"></span>
@@ -47,6 +47,10 @@
     <select id="projectList"></select>
     <button id="newProjectBtn" class="primary">New</button>
     <button id="saveNowBtn">Save</button>
+    <label class="publishToggleBar" for="publishToggle">
+      <input id="publishToggle" type="checkbox">
+      <span>Published</span>
+    </label>
     <button id="deleteProjectBtn" class="danger">Delete</button>
     <span class="autosave" id="saveStatus">Autosave ready</span>
     <button id="signOutBtn" class="signout">Sign out</button>
@@ -80,11 +84,6 @@
     <div class="body editorBody">
       <label for="projectTitle">Training title</label>
       <input id="projectTitle" type="text" value="Reception Visualisation Training">
-
-      <label class="toggleRow" for="publishToggle">
-        <input id="publishToggle" type="checkbox">
-        <span>Published <span class="small">(visible to users in the User view)</span></span>
-      </label>
 
       <hr>
 

@@ -806,3 +806,23 @@ button.toggleSection:hover {
 #metaSection.hidden {
   display: none;
 }
+
+.publishToggleBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+}
+
+.publishToggleBar input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.publishToggleBar span {
+  font-weight: 500;
+  color: var(--muted);
+}

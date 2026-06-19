@@ -967,6 +967,8 @@
     .tip p { margin: 0; color: #334e68; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5; }
     .tip .meta { margin-top: 10px; padding-top: 10px; border-top: 1px solid #d8dde0; color: #4c6272; font-size: .85rem; }
     .empty { padding: 48px 18px; color: #4c6272; text-align: center; }
+    @keyframes flash { 0%, 100% { background: rgba(0, 94, 184, 0.08); border-color: rgba(0, 94, 184, 0.45); } 50% { background: rgba(255, 193, 7, 0.25); border-color: #ffc107; } }
+    .spot.flash { animation: flash 0.6s ease-in-out; }
   </style>
 </head>
 <body>
@@ -975,7 +977,10 @@
       <h1>${safeTitle}</h1>
       <p>Hover or tap a highlighted area for guidance.</p>
     </div>
-    <span class="count">${hotspots.length} hotspot${hotspots.length === 1 ? "" : "s"}</span>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      ${hotspots.length ? '<button id="flashBtn" style="padding: 8px 14px; border: none; border-radius: 6px; background: #005eb8; color: #fff; font-weight: 500; font-size: 0.9rem; cursor: pointer;">Flash hotspots</button>' : ""}
+      <span class="count">${hotspots.length} hotspot${hotspots.length === 1 ? "" : "s"}</span>
+    </div>
   </header>
   <main class="main">
     <div class="contentShell">
@@ -1013,7 +1018,21 @@
       tip.classList.remove("show");
       document.querySelectorAll(".spot.active").forEach((node) => node.classList.remove("active"));
     }
-    hotspots.forEach((hotspot) => {
+    const hoveredIds = new Set();
+    function flashUnhovered() {
+      document.querySelectorAll(".spot").forEach((spot) => {
+        const hotspoIndex = Array.from(spot.parentNode.children).indexOf(spot);
+        if (!hoveredIds.has(hotspoIndex)) {
+          spot.classList.add("flash");
+          setTimeout(() => spot.classList.remove("flash"), 600);
+        }
+      });
+    }
+    const flashBtn = document.getElementById("flashBtn");
+    if (flashBtn) {
+      flashBtn.addEventListener("click", flashUnhovered);
+    }
+    hotspots.forEach((hotspot, index) => {
       const spot = document.createElement("button");
       spot.type = "button";
       spot.className = "spot";
@@ -1025,12 +1044,27 @@
       const label = document.createElement("span");
       label.textContent = hotspot.label || hotspot.title || "Hotspot";
       spot.appendChild(label);
-      spot.addEventListener("mouseenter", (event) => showTip(hotspot, event));
+      spot.addEventListener("mouseenter", (event) => {
+        hoveredIds.add(index);
+        showTip(hotspot, event);
+      });
       spot.addEventListener("mousemove", moveTip);
       spot.addEventListener("mouseleave", hideTip);
-      spot.addEventListener("focus", (event) => { spot.classList.add("active"); showTip(hotspot, event); });
+      spot.addEventListener("focus", (event) => {
+        hoveredIds.add(index);
+        spot.classList.add("active");
+        showTip(hotspot, event);
+      });
       spot.addEventListener("blur", hideTip);
-      spot.addEventListener("click", (event) => { spot.classList.add("active"); showTip(hotspot, event); });
+      spot.addEventListener("click", (event) => {
+        hoveredIds.add(index);
+        spot.classList.add("active");
+        showTip(hotspot, event);
+      });
+      spot.addEventListener("touchstart", (event) => {
+        hoveredIds.add(index);
+        showTip(hotspot, event.touches[0]);
+      });
       screen.appendChild(spot);
     });
     }

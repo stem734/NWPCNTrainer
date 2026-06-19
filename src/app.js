@@ -858,8 +858,8 @@
     .contentShell { max-width: 1600px; margin: 0 auto; }
     .screen { position: relative; width: 100%; background: #fff; border: 1px solid #d8dee8; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(17, 24, 39, 0.08); }
     .screen img { display: block; width: 100%; height: auto; }
-    .spot { position: absolute; border: 2px solid rgba(17, 24, 39, 0); background: rgba(255, 200, 87, 0); cursor: help; }
-    .spot:hover, .spot:focus, .spot.active { border-color: #111827; background: rgba(255, 200, 87, 0.25); outline: 0; box-shadow: 0 0 0 2px rgba(255,255,255,.92), 0 10px 30px rgba(0,0,0,.16); }
+    .spot { position: absolute; border: 2px dashed rgba(20, 88, 212, 0.35); border-radius: 3px; background: rgba(255, 200, 87, 0.12); cursor: help; transition: background 120ms ease, border-color 120ms ease, box-shadow 120ms ease; }
+    .spot:hover, .spot:focus, .spot.active { border-style: solid; border-color: #111827; background: rgba(255, 200, 87, 0.3); outline: 0; box-shadow: 0 0 0 2px rgba(255,255,255,.92), 0 10px 30px rgba(0,0,0,.16); }
     .spot span { position: absolute; left: -2px; top: -30px; display: none; max-width: min(300px, 82vw); overflow: hidden; border-radius: 5px; background: #111827; color: #fff; padding: 4px 8px; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
     .spot:hover span, .spot:focus span, .spot.active span { display: block; }
     .tip { position: fixed; z-index: 10; display: none; width: min(360px, calc(100vw - 24px)); border: 1px solid #c8d0dc; border-radius: 8px; background: #fff; padding: 14px; box-shadow: 0 18px 42px rgba(17,24,39,.18); }

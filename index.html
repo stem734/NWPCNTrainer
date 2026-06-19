@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>S1 Hotspot Training</title>
+  <title>Nottingham West PCN Training Portal</title>
   <link rel="stylesheet" href="src/styles.css">
 </head>
 <body class="mode-user">
@@ -101,7 +101,13 @@
       <textarea id="hotGuidance" placeholder="Explain what the section means and what reception should do..."></textarea>
 
       <label for="hotColor">Colour</label>
-      <input id="hotColor" type="color" value="#ffc857">
+      <select id="hotColor">
+        <option value="#ffc857">Yellow</option>
+        <option value="#ff6b6b">Red</option>
+        <option value="#51cf66">Green</option>
+        <option value="#4dabf7">Blue</option>
+        <option value="#da77f2">Purple</option>
+      </select>
 
       <button id="metaToggleBtn" type="button" class="toggleSection">+ Optional metadata</button>
       <div id="metaSection" class="hidden">
